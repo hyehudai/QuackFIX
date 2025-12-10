@@ -1,0 +1,23 @@
+# name: test/sql/quackfix.test
+# description: test quackfix extension
+# group: [sql]
+
+# Before we load the extension, this will fail
+statement error
+SELECT quackfix('Sam');
+----
+Catalog Error: Scalar Function with name quackfix does not exist!
+
+# Require statement will ensure this test is run with this extension loaded
+require quackfix
+
+# Confirm the extension works
+query I
+SELECT quackfix('Sam');
+----
+Quackfixfixfixfixfixfixfixfixfix Sam 🐥
+
+query I
+SELECT quackfix_openssl_version('Michael') ILIKE 'Quackfixfixfixfixfixfixfixfixfix Michael, my linked OpenSSL version is OpenSSL%';
+----
+true
