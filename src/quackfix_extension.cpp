@@ -11,40 +11,42 @@
 
 namespace duckdb {
 
-inline void QuackfixfixfixfixfixfixfixfixfixScalarFun(DataChunk &args, ExpressionState &state, Vector &result) {
+inline void QuackfixScalarFun(DataChunk &args, ExpressionState &state, Vector &result) {
 	auto &name_vector = args.data[0];
 	UnaryExecutor::Execute<string_t, string_t>(name_vector, result, args.size(), [&](string_t name) {
-		return StringVector::AddString(result, "Quackfixfixfixfixfixfixfixfixfix " + name.GetString() + " 🐥");
+		return StringVector::AddString(result, "Quackfix " + name.GetString() + " 🐥");
 	});
 }
 
-inline void QuackfixfixfixfixfixfixfixfixfixOpenSSLVersionScalarFun(DataChunk &args, ExpressionState &state, Vector &result) {
+inline void QuackfixOpenSSLVersionScalarFun(DataChunk &args, ExpressionState &state,
+                                                                    Vector &result) {
 	auto &name_vector = args.data[0];
 	UnaryExecutor::Execute<string_t, string_t>(name_vector, result, args.size(), [&](string_t name) {
-		return StringVector::AddString(result, "Quackfixfixfixfixfixfixfixfixfix " + name.GetString() + ", my linked OpenSSL version is " +
-		                                           OPENSSL_VERSION_TEXT);
+		return StringVector::AddString(result, "Quackfix " + name.GetString() +
+		                                           ", my linked OpenSSL version is " + OPENSSL_VERSION_TEXT);
 	});
 }
 
 static void LoadInternal(ExtensionLoader &loader) {
 	// Register a scalar function
-	auto quackfix_scalar_function = ScalarFunction("quackfix", {LogicalType::VARCHAR}, LogicalType::VARCHAR, QuackfixfixfixfixfixfixfixfixfixScalarFun);
+	auto quackfix_scalar_function = ScalarFunction("quackfix", {LogicalType::VARCHAR}, LogicalType::VARCHAR,
+	                                               QuackfixScalarFun);
 	loader.RegisterFunction(quackfix_scalar_function);
 
 	// Register another scalar function
-	auto quackfix_openssl_version_scalar_function = ScalarFunction("quackfix_openssl_version", {LogicalType::VARCHAR},
-	                                                            LogicalType::VARCHAR, QuackfixOpenSSLVersionScalarFun);
+	auto quackfix_openssl_version_scalar_function = ScalarFunction(
+	    "quackfix_openssl_version", {LogicalType::VARCHAR}, LogicalType::VARCHAR, QuackfixOpenSSLVersionScalarFun);
 	loader.RegisterFunction(quackfix_openssl_version_scalar_function);
 }
 
-void QuackfixfixfixfixfixfixfixfixfixExtension::Load(ExtensionLoader &loader) {
+void QuackfixExtension::Load(ExtensionLoader &loader) {
 	LoadInternal(loader);
 }
-std::string QuackfixfixfixfixfixfixfixfixfixExtension::Name() {
+std::string QuackfixExtension::Name() {
 	return "quackfix";
 }
 
-std::string QuackfixfixfixfixfixfixfixfixfixExtension::Version() const {
+std::string QuackfixExtension::Version() const {
 #ifdef EXT_VERSION_QUACKFIX
 	return EXT_VERSION_QUACKFIX;
 #else
