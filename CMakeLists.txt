@@ -23,6 +23,7 @@ include_directories(third_party/tinyxml2)
 set(EXTENSION_SOURCES 
     src/quackfix_extension.cpp
     src/dictionary/xml_loader.cpp
+    src/parser/fix_tokenizer.cpp
     third_party/tinyxml2/tinyxml2.cpp
 )
 
