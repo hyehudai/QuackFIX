@@ -5,7 +5,91 @@ This repository is based on https://github.com/duckdb/extension-template, check 
 Query FIX protocol log files.
 ---
 
-![Description](QuackfixLogo.png)
+![Description](quackfixlogo2.png)
+
+### What is QuackFIX?
+
+QuackFIX is a DuckDB extension that lets you query FIX logs directly with SQL. It parses raw FIX messages into a structured, queryable format, making FIX log analysis faster and more intuitive for trading, compliance, and financial operations.
+
+### What Sets QuackFIX Apart?
+
+**Native DuckDB Integration**
+Query FIX logs directly in DuckDB—no pre-parsing, no pandas round-trips.
+
+**Dialect-Aware**
+Supports custom FIX dialects via XML dictionaries, so venue-specific tags just work.
+
+**Fast and Scalable**
+Built on DuckDB’s in-memory, columnar engine to efficiently handle large log volumes.
+
+**Less Glue Code**
+Replace ad-hoc parsing scripts with a clean, SQL-first workflow.
+
+### Real-World Impact
+
+QuackFIX turns FIX log analysis into a simple SQL problem—spend less time wrangling logs and more time extracting insights.
+
+---
+
+## Installation
+
+```sql
+INSTALL quackfix;
+LOAD quackfix;
+```
+
+## Quick Examples
+
+### 1. Basic: Read FIX Logs
+```sql
+SELECT * FROM read_fix('logs/trading.fix') LIMIT 10;
+```
+
+### 2. Filtering: Find Specific Orders
+```sql
+SELECT * FROM read_fix('logs/*.fix') 
+WHERE MsgType = 'D' AND Symbol = 'AAPL';
+```
+
+### 3. Projection: Select Specific Columns (Performance Optimization)
+```sql
+SELECT SendingTime, Symbol, Side, OrderQty, Price
+FROM read_fix('logs/*.fix') 
+WHERE MsgType = 'D';
+```
+
+### 4. Use Tags: Access Non-Hot Tags
+```sql
+SELECT Symbol, tags[60] as TransactTime 
+FROM read_fix('logs/*.fix');
+```
+
+### 5. Aggregation: Analytics on FIX Data
+```sql
+SELECT Symbol, COUNT(*) as orders, AVG(Price) as avg_price
+FROM read_fix('logs/*.fix') 
+WHERE MsgType = 'D'
+GROUP BY Symbol;
+```
+
+## Dictionary Exploration
+
+QuackFIX provides auxiliary functions to explore FIX dictionaries:
+
+```sql
+-- Explore all fields in dictionary
+SELECT * FROM fix_fields('dialects/FIX44.xml') WHERE type = 'PRICE';
+
+-- Explore fields for a specific message type
+SELECT * FROM fix_message_fields('dialects/FIX44.xml') WHERE msgtype = 'D';
+
+-- Explore repeating groups
+SELECT * FROM fix_groups('dialects/FIX44.xml');
+```
+
+For detailed documentation, see [USERGUIDE.md](USERGUIDE.md).
+
+---
 
 ## Building
 ### Managing dependencies
@@ -32,25 +116,12 @@ The main binaries that will be built are:
 - `unittest` is the test runner of duckdb. Again, the extension is already linked into the binary.
 - `quackfix.duckdb_extension` is the loadable binary as it would be distributed.
 
-## Running the extension
-To run the extension code, simply start the shell with `./build/release/duckdb`.
-
-Now we can use the features from the extension directly in DuckDB. The template contains a single scalar function `quackfix()` that takes a string arguments and returns a string:
-```
-D select quackfix('Jane') as result;
-┌───────────────┐
-│    result     │
-│    varchar    │
-├───────────────┤
-│ Quackfix Jane 🐥 │
-└───────────────┘
-```
-
-## Running the tests
-Different tests can be created for DuckDB extensions. The primary way of testing DuckDB extensions should be the SQL tests in `./test/sql`. These SQL tests can be run using:
+## Running Tests
 ```sh
 make test
 ```
+
+## Deployment
 
 ### Installing the deployed binaries
 To install your extension binaries from S3, you will need to do two things. Firstly, DuckDB should be launched with the
@@ -84,19 +155,3 @@ After running these steps, you can install and load your extension using the reg
 INSTALL quackfix;
 LOAD quackfix;
 ```
-
-## Setting up CLion
-
-### Opening project
-Configuring CLion with this extension requires a little work. Firstly, make sure that the DuckDB submodule is available.
-Then make sure to open `./duckdb/CMakeLists.txt` (so not the top level `CMakeLists.txt` file from this repo) as a project in CLion.
-Now to fix your project path go to `tools->CMake->Change Project Root`([docs](https://www.jetbrains.com/help/clion/change-project-root-directory.html)) to set the project root to the root dir of this repo.
-
-### Debugging
-To set up debugging in CLion, there are two simple steps required. Firstly, in `CLion -> Settings / Preferences -> Build, Execution, Deploy -> CMake` you will need to add the desired builds (e.g. Debug, Release, RelDebug, etc). There's different ways to configure this, but the easiest is to leave all empty, except the `build path`, which needs to be set to `../build/{build type}`, and CMake Options to which the following flag should be added, with the path to the extension CMakeList:
-
-```
--DDUCKDB_EXTENSION_CONFIGS=<path_to_the_exentension_CMakeLists.txt>
-```
-
-The second step is to configure the unittest runner as a run/debug configuration. To do this, go to `Run -> Edit Configurations` and click `+ -> Cmake Application`. The target and executable should be `unittest`. This will run all the DuckDB tests. To specify only running the extension specific tests, add `--test-dir ../../.. [sql]` to the `Program Arguments`. Note that it is recommended to use the `unittest` executable for testing/development within CLion. The actual DuckDB CLI currently does not reliably work as a run target in CLion.
