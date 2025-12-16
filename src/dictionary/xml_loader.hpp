@@ -4,10 +4,16 @@
 #include "tinyxml2.h"
 #include <string>
 
+// Forward declaration
+namespace duckdb {
+    class ClientContext;
+}
+
 class FixDictionaryLoader {
 public:
-    static FixDictionary LoadBase(const std::string &path);
-    static void ApplyOverlay(FixDictionary &dict, const std::string &path);
+    // Phase 7.8: Updated to support DuckDB FileSystem (S3, HTTP, etc.)
+    static FixDictionary LoadBase(duckdb::ClientContext &context, const std::string &path);
+    static void ApplyOverlay(duckdb::ClientContext &context, FixDictionary &dict, const std::string &path);
 
 private:
     static void LoadFields(FixDictionary &dict, tinyxml2::XMLElement *fields_root);

@@ -1,16 +1,29 @@
 #include "xml_loader.hpp"
 #include "tinyxml2.h"
+#include "duckdb/common/file_system.hpp"
 #include <stdexcept>
 #include <iostream>
 
 using namespace tinyxml2;
+using namespace duckdb;
 
-FixDictionary FixDictionaryLoader::LoadBase(const std::string &path) {
+FixDictionary FixDictionaryLoader::LoadBase(ClientContext &context, const std::string &path) {
     FixDictionary dict;
     XMLDocument doc;
 
-    if (doc.LoadFile(path.c_str()) != XML_SUCCESS) {
-        throw std::runtime_error("Failed to load dictionary XML: " + path);
+    // Phase 7.8: Use DuckDB FileSystem to support S3, HTTP, etc.
+    auto &fs = FileSystem::GetFileSystem(context);
+    auto handle = fs.OpenFile(path, FileFlags::FILE_FLAGS_READ);
+    
+    // Read entire file into string
+    auto file_size = fs.GetFileSize(*handle);
+    std::string xml_content;
+    xml_content.resize(file_size);
+    handle->Read((void*)xml_content.data(), file_size);
+    
+    // Parse XML from string
+    if (doc.Parse(xml_content.c_str()) != XML_SUCCESS) {
+        throw std::runtime_error("Failed to parse dictionary XML from: " + path);
     }
 
     auto *root = doc.RootElement();
@@ -221,10 +234,22 @@ void FixDictionaryLoader::LoadMessages(FixDictionary &dict, XMLElement *messages
 // ===========================================================
 // APPLY OVERLAY XML (dialects, custom fields, etc.)
 // ===========================================================
-void FixDictionaryLoader::ApplyOverlay(FixDictionary &dict, const std::string &path) {
+void FixDictionaryLoader::ApplyOverlay(ClientContext &context, FixDictionary &dict, const std::string &path) {
     XMLDocument doc;
-    if (doc.LoadFile(path.c_str()) != XML_SUCCESS) {
-        throw std::runtime_error("Failed to load overlay XML: " + path);
+    
+    // Phase 7.8: Use DuckDB FileSystem to support S3, HTTP, etc.
+    auto &fs = FileSystem::GetFileSystem(context);
+    auto handle = fs.OpenFile(path, FileFlags::FILE_FLAGS_READ);
+    
+    // Read entire file into string
+    auto file_size = fs.GetFileSize(*handle);
+    std::string xml_content;
+    xml_content.resize(file_size);
+    handle->Read((void*)xml_content.data(), file_size);
+    
+    // Parse XML from string
+    if (doc.Parse(xml_content.c_str()) != XML_SUCCESS) {
+        throw std::runtime_error("Failed to parse overlay XML from: " + path);
     }
 
     auto *root = doc.RootElement();

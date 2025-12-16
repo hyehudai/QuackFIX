@@ -148,7 +148,7 @@ SELECT MsgType, Symbol FROM read_fix('testdata/sample.fix') WHERE MsgType = 'W';
 W	AAPL
 
 # Test HTTP file reading from GitHub (requires httpfs extension)
-require httpfs
+# require httpfs
 
 statement ok
 INSTALL httpfs;
@@ -174,3 +174,34 @@ SELECT MsgType, Symbol FROM read_fix('https://raw.githubusercontent.com/hyehudai
 8	AAPL
 D	AAPL
 W	AAPL
+
+# Phase 7.5: Test custom tags with rtags parameter (tag names)
+query IT
+SELECT MsgType, TransactTime FROM read_fix('testdata/sample.fix', rtags=['TransactTime']) WHERE MsgType = 'D' LIMIT 1;
+----
+D	20231215-10:30:00
+
+# Test multiple rtags
+query IIT
+SELECT MsgType, Symbol, TransactTime FROM read_fix('testdata/sample.fix', rtags=['TransactTime']) WHERE MsgType = 'D' ORDER BY Symbol;
+----
+D	AAPL	20231215-10:30:00
+D	MSFT	20231215-10:31:00
+
+# Test custom tags with tagIds parameter (tag numbers)
+query IT
+SELECT MsgType, TransactTime FROM read_fix('testdata/sample.fix', tagIds=[60]) WHERE MsgType = 'D' LIMIT 1;
+----
+D	20231215-10:30:00
+
+# Test both rtags and tagIds together
+query ITT
+SELECT MsgType, TransactTime, SecurityType FROM read_fix('testdata/sample.fix', rtags=['TransactTime'], tagIds=[167]) WHERE MsgType = 'D' LIMIT 1;
+----
+D	20231215-10:30:00	NULL
+
+# Test empty rtags list (should work with no custom columns)
+query II
+SELECT MsgType, Symbol FROM read_fix('testdata/sample.fix', rtags=[]) WHERE MsgType = 'D' LIMIT 1;
+----
+D	AAPL

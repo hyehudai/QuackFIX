@@ -26,6 +26,7 @@ set(EXTENSION_SOURCES
     src/dictionary/xml_loader.cpp
     src/parser/fix_tokenizer.cpp
     src/table_function/read_fix_function.cpp
+    src/table_function/dictionary_functions.cpp
     third_party/tinyxml2/tinyxml2.cpp
 )
 
