@@ -11,7 +11,6 @@
 #include "dictionary/xml_loader.hpp"
 #include "parser/fix_tokenizer.hpp"
 #include "parser/fix_message.hpp"
-#include <fstream>
 #include <sstream>
 
 namespace duckdb {
@@ -38,12 +37,14 @@ struct ReadFixGlobalState : public GlobalTableFunctionState {
 
 // Local state - per-thread state
 struct ReadFixLocalState : public LocalTableFunctionState {
-    unique_ptr<std::ifstream> file_handle;
+    unique_ptr<FileHandle> file_handle;
     string current_file;
     idx_t line_number;
     bool file_done;
+    string buffer;
+    idx_t buffer_offset;
     
-    ReadFixLocalState() : line_number(0), file_done(false) {}
+    ReadFixLocalState() : line_number(0), file_done(false), buffer_offset(0) {}
 };
 
 // Bind function - called once at query planning time
@@ -57,7 +58,15 @@ static unique_ptr<FunctionData> ReadFixBind(ClientContext &context, TableFunctio
     }
     
     auto &file_path = StringValue::Get(input.inputs[0]);
-    result->files.push_back(file_path);
+    
+    // Expand glob patterns using DuckDB FileSystem
+    auto &fs = FileSystem::GetFileSystem(context);
+    auto file_list = fs.GlobFiles(file_path, context, FileGlobOptions::DISALLOW_EMPTY);
+    
+    // Extract file paths from OpenFileInfo objects
+    for (auto &file_info : file_list) {
+        result->files.push_back(file_info.path);
+    }
     
     // Load FIX dictionary for group parsing
     try {
@@ -178,22 +187,67 @@ static void ReadFixScan(ClientContext &context, TableFunctionInput &data_p, Data
         lstate.current_file = bind_data.files[gstate.file_index];
         gstate.file_index++;
         
-        lstate.file_handle = make_uniq<std::ifstream>(lstate.current_file);
-        if (!lstate.file_handle->is_open()) {
-            throw IOException("Failed to open file: " + lstate.current_file);
-        }
+        // Use DuckDB FileSystem API to open file (supports S3, HTTP, etc.)
+        auto &fs = FileSystem::GetFileSystem(context);
+        lstate.file_handle = fs.OpenFile(lstate.current_file, FileFlags::FILE_FLAGS_READ);
         lstate.line_number = 0;
         lstate.file_done = false;
+        lstate.buffer.clear();
+        lstate.buffer_offset = 0;
     }
     
     // Read and parse lines
     string line;
     while (output_idx < STANDARD_VECTOR_SIZE && !lstate.file_done) {
-        if (!std::getline(*lstate.file_handle, line)) {
-            // End of file
-            lstate.file_done = true;
+        // Read a line from the file using FileHandle
+        line.clear();
+        bool found_line = false;
+        
+        while (!lstate.file_done) {
+            // Check if we need to read more data into buffer
+            if (lstate.buffer_offset >= lstate.buffer.size()) {
+                // Read next chunk
+                constexpr idx_t BUFFER_SIZE = 8192;
+                lstate.buffer.resize(BUFFER_SIZE);
+                idx_t bytes_read = lstate.file_handle->Read((void*)lstate.buffer.data(), BUFFER_SIZE);
+                
+                if (bytes_read == 0) {
+                    // End of file
+                    lstate.file_done = true;
+                    if (!line.empty()) {
+                        found_line = true;
+                    }
+                    break;
+                }
+                
+                lstate.buffer.resize(bytes_read);
+                lstate.buffer_offset = 0;
+            }
+            
+            // Find newline in buffer
+            size_t newline_pos = lstate.buffer.find('\n', lstate.buffer_offset);
+            if (newline_pos != string::npos) {
+                // Found newline
+                line.append(lstate.buffer, lstate.buffer_offset, newline_pos - lstate.buffer_offset);
+                lstate.buffer_offset = newline_pos + 1;
+                found_line = true;
+                break;
+            } else {
+                // No newline in current buffer, append all remaining data
+                line.append(lstate.buffer, lstate.buffer_offset, lstate.buffer.size() - lstate.buffer_offset);
+                lstate.buffer_offset = lstate.buffer.size();
+            }
+        }
+        
+        if (!found_line) {
+            // No more lines, close file
             lstate.file_handle.reset();
             break;
+        }
+        
+        // Remove trailing carriage return if present (for Windows line endings)
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
         }
         
         lstate.line_number++;

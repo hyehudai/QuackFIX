@@ -146,3 +146,31 @@ query II
 SELECT MsgType, Symbol FROM read_fix('testdata/sample.fix') WHERE MsgType = 'W';
 ----
 W	AAPL
+
+# Test HTTP file reading from GitHub (requires httpfs extension)
+require httpfs
+
+statement ok
+INSTALL httpfs;
+
+statement ok
+LOAD httpfs;
+
+query I
+SELECT COUNT(*) FROM read_fix('https://raw.githubusercontent.com/hyehudai/QuackFIX/refs/heads/main/testdata/sample.fix');
+----
+6
+
+# Test HTTP with filtering
+query I
+SELECT COUNT(*) FROM read_fix('https://raw.githubusercontent.com/hyehudai/QuackFIX/refs/heads/main/testdata/sample.fix') WHERE MsgType = 'D';
+----
+2
+
+# Test HTTP with projection
+query II
+SELECT MsgType, Symbol FROM read_fix('https://raw.githubusercontent.com/hyehudai/QuackFIX/refs/heads/main/testdata/sample.fix') WHERE Symbol = 'AAPL' ORDER BY MsgType;
+----
+8	AAPL
+D	AAPL
+W	AAPL
