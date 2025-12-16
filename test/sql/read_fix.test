@@ -1,0 +1,148 @@
+# name: test/sql/read_fix.test
+# description: Test read_fix table function with typed columns
+# group: [quackfix]
+
+require quackfix
+
+# Test projection of specific columns
+query III
+SELECT MsgType, Symbol, Side FROM read_fix('testdata/sample.fix') ORDER BY MsgType, Symbol;
+----
+8	AAPL	1
+8	MSFT	2
+8	TSLA	1
+D	AAPL	1
+D	MSFT	2
+W	AAPL	NULL
+
+# Test filtering by MsgType
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D';
+----
+2
+
+# Test filtering by MsgType and Symbol
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix') WHERE MsgType = '8' AND Symbol = 'AAPL';
+----
+1
+
+# Test projection of execution report fields
+query IIII
+SELECT MsgType, Symbol, ExecType, OrdStatus FROM read_fix('testdata/sample.fix') WHERE MsgType = '8' ORDER BY Symbol;
+----
+8	AAPL	F	2
+8	MSFT	F	2
+8	TSLA	F	2
+
+# Test projection of order fields with numeric types
+query IRRI
+SELECT MsgType, Symbol, OrderQty, Price FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D' ORDER BY Symbol;
+----
+D	AAPL	100.0	150.5
+D	MSFT	50.0	380.25
+
+# Test filtering by Symbol
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix') WHERE Symbol = 'AAPL';
+----
+3
+
+# Test ClOrdID field
+query II
+SELECT ClOrdID, Symbol FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D' ORDER BY Symbol;
+----
+ORDER123	AAPL
+ORDER456	MSFT
+
+# Test execution fields with numeric LastQty
+query IIR
+SELECT OrderID, ExecID, LastQty FROM read_fix('testdata/sample.fix') WHERE MsgType = '8' ORDER BY OrderID;
+----
+EXEC001	TRADE001	100.0
+EXEC002	TRADE002	50.0
+EXEC003	TRADE003	200.0
+
+# Test sender/target fields
+query III
+SELECT MsgType, SenderCompID, TargetCompID FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D' LIMIT 1;
+----
+D	SENDER	TARGET
+
+# Test that parse_error is NULL for valid messages
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix') WHERE parse_error IS NULL;
+----
+6
+
+# Test numeric operations - SUM
+query R
+SELECT SUM(OrderQty) FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D';
+----
+150.0
+
+# Test numeric operations - AVG
+query R
+SELECT AVG(Price) FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D';
+----
+265.375
+
+# Test numeric comparisons
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix') WHERE Price > 200.0;
+----
+3
+
+# Test MsgSeqNum as BIGINT
+query I
+SELECT MsgSeqNum FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D' LIMIT 1;
+----
+1
+
+# Test SendingTime as TIMESTAMP
+query T
+SELECT SendingTime FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D' LIMIT 1;
+----
+2023-12-15 10:30:00
+
+# Test SendingTime time operations
+query I
+SELECT HOUR(SendingTime) FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D' LIMIT 1;
+----
+10
+
+# Test tags column (Phase 5 - now populated with non-hot tags)
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix') WHERE tags IS NOT NULL;
+----
+6
+
+# Test accessing a specific tag value (tag 21 = HandlInst in message 1)
+query I
+SELECT tags[21] FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D' LIMIT 1;
+----
+1
+
+# Test accessing TransactTime (tag 60) from tags
+query I
+SELECT tags[60] FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D' LIMIT 1;
+----
+20231215-10:30:00
+
+# Test groups column (Phase 5.5 - now populated for messages with groups)
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix') WHERE groups IS NULL;
+----
+4
+
+# Test message with NoPartyIDs group (tag 453) - Message 5
+query IIII
+SELECT MsgType, Symbol, OrderID, ExecID FROM read_fix('testdata/sample.fix') WHERE Symbol = 'TSLA';
+----
+8	TSLA	EXEC003	TRADE003
+
+# Test Market Data Snapshot message (tag 268) - Message 6
+query II
+SELECT MsgType, Symbol FROM read_fix('testdata/sample.fix') WHERE MsgType = 'W';
+----
+W	AAPL

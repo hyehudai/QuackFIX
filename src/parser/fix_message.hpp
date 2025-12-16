@@ -2,6 +2,8 @@
 
 #include <string>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 #include <cstdint>
 #include <cstring>
 
@@ -57,6 +59,11 @@ struct ParsedFixMessage {
     };
     std::unordered_map<int, TagValue> other_tags;
 
+    // Ordered list of all tags for group parsing
+    // Each pair is (tag_number, TagValue)
+    // Preserves original message order needed for repeating groups
+    std::vector<std::pair<int, TagValue>> all_tags_ordered;
+
     // Raw message for debugging/logging
     const char* raw_message;
     size_t raw_message_len;
@@ -89,6 +96,7 @@ struct ParsedFixMessage {
         last_qty = nullptr; last_qty_len = 0;
         text = nullptr; text_len = 0;
         other_tags.clear();
+        all_tags_ordered.clear();
         raw_message = nullptr;
         raw_message_len = 0;
         parse_error.clear();

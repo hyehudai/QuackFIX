@@ -16,6 +16,7 @@ set(QUACKFIX_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 project(${TARGET_NAME})
 include_directories(src/include)
+include_directories(src)
 
 # Add tinyxml2 directory to includes
 include_directories(third_party/tinyxml2)
@@ -24,6 +25,7 @@ set(EXTENSION_SOURCES
     src/quackfix_extension.cpp
     src/dictionary/xml_loader.cpp
     src/parser/fix_tokenizer.cpp
+    src/table_function/read_fix_function.cpp
     third_party/tinyxml2/tinyxml2.cpp
 )
 

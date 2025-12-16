@@ -5,6 +5,7 @@
 #include "duckdb/common/exception.hpp"
 #include "duckdb/function/scalar_function.hpp"
 #include <duckdb/parser/parsed_data/create_scalar_function_info.hpp>
+#include "table_function/read_fix_function.hpp"
 
 // OpenSSL linked through vcpkg
 #include <openssl/opensslv.h>
@@ -37,6 +38,10 @@ static void LoadInternal(ExtensionLoader &loader) {
 	auto quackfix_openssl_version_scalar_function = ScalarFunction(
 	    "quackfix_openssl_version", {LogicalType::VARCHAR}, LogicalType::VARCHAR, QuackfixOpenSSLVersionScalarFun);
 	loader.RegisterFunction(quackfix_openssl_version_scalar_function);
+	
+	// Register the read_fix table function
+	auto read_fix_function = ReadFixFunction::GetFunction();
+	loader.RegisterFunction(read_fix_function);
 }
 
 void QuackfixExtension::Load(ExtensionLoader &loader) {

@@ -44,11 +44,21 @@ struct FixMessageDef {
 };
 
 // -------------------------------
+// COMPONENT DEFINITIONS
+// -------------------------------
+struct FixComponentDef {
+    std::string name;
+    std::vector<int> field_tags;
+    std::unordered_map<int, FixGroupDef> groups;
+};
+
+// -------------------------------
 // DICTIONARY ROOT
 // -------------------------------
 struct FixDictionary {
     std::unordered_map<int, FixFieldDef> fields;             // tag → definition
     std::unordered_map<std::string, FixMessageDef> messages; // MsgType → message def
+    std::unordered_map<std::string, FixComponentDef> components; // name → component def
 
     // Reverse lookup: name → tag
     std::unordered_map<std::string, int> name_to_tag;

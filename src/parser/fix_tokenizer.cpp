@@ -29,6 +29,9 @@ bool FixTokenizer::ParseTag(const char* tag_str, size_t tag_len, const char* val
         return false;
     }
 
+    // Add ALL tags to ordered list (for group parsing)
+    msg.all_tags_ordered.push_back({tag, {value, value_len}});
+
     // Store in appropriate field based on tag number
     switch (tag) {
         case 35:  msg.msg_type = value; msg.msg_type_len = value_len; break;

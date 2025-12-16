@@ -27,6 +27,14 @@ FixDictionary FixDictionaryLoader::LoadBase(const std::string &path) {
     }
 
     // ---------------------------
+    // Load <components> (BEFORE messages)
+    // ---------------------------
+    auto *components_root = root->FirstChildElement("components");
+    if (components_root) {
+        LoadComponents(dict, components_root);
+    }
+
+    // ---------------------------
     // Load <messages>
     // ---------------------------
     auto *messages_root = root->FirstChildElement("messages");
@@ -103,6 +111,68 @@ FixGroupDef FixDictionaryLoader::LoadGroup(FixDictionary &dict, XMLElement *grou
 }
 
 // ===========================================================
+// COMPONENT LOADING
+// ===========================================================
+void FixDictionaryLoader::LoadComponents(FixDictionary &dict, XMLElement *components_root) {
+    for (XMLElement *comp = components_root->FirstChildElement("component");
+         comp != nullptr;
+         comp = comp->NextSiblingElement("component"))
+    {
+        FixComponentDef c;
+        c.name = comp->Attribute("name");
+
+        // fields in component
+        for (XMLElement *field = comp->FirstChildElement("field");
+             field != nullptr;
+             field = field->NextSiblingElement("field"))
+        {
+            const char *fname = field->Attribute("name");
+            if (fname) {
+                c.field_tags.push_back(dict.name_to_tag[fname]);
+            }
+        }
+
+        // groups in component
+        for (XMLElement *group = comp->FirstChildElement("group");
+             group != nullptr;
+             group = group->NextSiblingElement("group"))
+        {
+            FixGroupDef g = LoadGroup(dict, group);
+            c.groups[g.count_tag] = g;
+        }
+
+        dict.components[c.name] = c;
+    }
+}
+
+// ===========================================================
+// EXPAND COMPONENT REFERENCE INTO MESSAGE
+// ===========================================================
+void FixDictionaryLoader::ExpandComponent(FixDictionary &dict, FixMessageDef &msg, XMLElement *comp_ref) {
+    const char *comp_name = comp_ref->Attribute("name");
+    if (!comp_name) return;
+
+    auto it = dict.components.find(comp_name);
+    if (it == dict.components.end()) return;
+
+    const FixComponentDef &comp = it->second;
+
+    // Add component's fields to message
+    bool required = comp_ref->Attribute("required") && strcmp(comp_ref->Attribute("required"), "Y") == 0;
+    for (int tag : comp.field_tags) {
+        if (required)
+            msg.required_fields.push_back(tag);
+        else
+            msg.optional_fields.push_back(tag);
+    }
+
+    // Add component's groups to message
+    for (const auto &[count_tag, group_def] : comp.groups) {
+        msg.groups[count_tag] = group_def;
+    }
+}
+
+// ===========================================================
 // MESSAGE LOADING
 // ===========================================================
 void FixDictionaryLoader::LoadMessages(FixDictionary &dict, XMLElement *messages_root) {
@@ -115,28 +185,33 @@ void FixDictionaryLoader::LoadMessages(FixDictionary &dict, XMLElement *messages
         m.name     = msg->Attribute("name");
         m.msg_type = msg->Attribute("msgtype");
 
-        // fields
-        for (XMLElement *field = msg->FirstChildElement("field");
-             field != nullptr;
-             field = field->NextSiblingElement("field"))
+        // Iterate through all child elements in order
+        for (XMLElement *child = msg->FirstChildElement();
+             child != nullptr;
+             child = child->NextSiblingElement())
         {
-            const char *fname = field->Attribute("name");
-            bool required = strcmp(field->Attribute("required"), "Y") == 0;
+            const char *child_name = child->Name();
+            
+            if (strcmp(child_name, "field") == 0) {
+                // Direct field
+                const char *fname = child->Attribute("name");
+                bool required = child->Attribute("required") && strcmp(child->Attribute("required"), "Y") == 0;
 
-            int tag = dict.name_to_tag[fname];
-            if (required)
-                m.required_fields.push_back(tag);
-            else
-                m.optional_fields.push_back(tag);
-        }
-
-        // repeating groups
-        for (XMLElement *group = msg->FirstChildElement("group");
-             group != nullptr;
-             group = group->NextSiblingElement("group"))
-        {
-            FixGroupDef g = LoadGroup(dict, group);
-            m.groups[g.count_tag] = g;
+                int tag = dict.name_to_tag[fname];
+                if (required)
+                    m.required_fields.push_back(tag);
+                else
+                    m.optional_fields.push_back(tag);
+            }
+            else if (strcmp(child_name, "group") == 0) {
+                // Direct group
+                FixGroupDef g = LoadGroup(dict, child);
+                m.groups[g.count_tag] = g;
+            }
+            else if (strcmp(child_name, "component") == 0) {
+                // Component reference - expand it
+                ExpandComponent(dict, m, child);
+            }
         }
 
         dict.messages[m.msg_type] = m;
