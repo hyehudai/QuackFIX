@@ -10,7 +10,7 @@ FixDictionary FixDictionaryLoader::LoadBase(duckdb::ClientContext &context, cons
 
 	// Phase 7.8: Use DuckDB FileSystem to support S3, HTTP, etc.
 	auto &fs = duckdb::FileSystem::GetFileSystem(context);
-	auto handle = fs.OpenFile(path, duckdb::FileFlags::FILE_FLAGS_READ);
+	auto handle = fs.OpenFile(path, duckdb::FileOpenFlags(duckdb::FileOpenFlags::FILE_FLAGS_READ));
 
 	// Read entire file into string
 	auto file_size = fs.GetFileSize(*handle);
@@ -222,7 +222,7 @@ void FixDictionaryLoader::ApplyOverlay(duckdb::ClientContext &context, FixDictio
 
 	// Phase 7.8: Use DuckDB FileSystem to support S3, HTTP, etc.
 	auto &fs = duckdb::FileSystem::GetFileSystem(context);
-	auto handle = fs.OpenFile(path, duckdb::FileFlags::FILE_FLAGS_READ);
+	auto handle = fs.OpenFile(path, duckdb::FileOpenFlags(duckdb::FileOpenFlags::FILE_FLAGS_READ));
 
 	// Read entire file into string
 	auto file_size = fs.GetFileSize(*handle);
