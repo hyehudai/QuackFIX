@@ -4,16 +4,13 @@
 #include <stdexcept>
 #include <iostream>
 
-using namespace tinyxml2;
-using namespace duckdb;
-
-FixDictionary FixDictionaryLoader::LoadBase(ClientContext &context, const std::string &path) {
+FixDictionary FixDictionaryLoader::LoadBase(duckdb::ClientContext &context, const std::string &path) {
 	FixDictionary dict;
-	XMLDocument doc;
+	tinyxml2::XMLDocument doc;
 
 	// Phase 7.8: Use DuckDB FileSystem to support S3, HTTP, etc.
-	auto &fs = FileSystem::GetFileSystem(context);
-	auto handle = fs.OpenFile(path, FileFlags::FILE_FLAGS_READ);
+	auto &fs = duckdb::FileSystem::GetFileSystem(context);
+	auto handle = fs.OpenFile(path, duckdb::FileFlags::FILE_FLAGS_READ);
 
 	// Read entire file into string
 	auto file_size = fs.GetFileSize(*handle);
@@ -22,7 +19,7 @@ FixDictionary FixDictionaryLoader::LoadBase(ClientContext &context, const std::s
 	handle->Read((void *)xml_content.data(), file_size);
 
 	// Parse XML from string
-	if (doc.Parse(xml_content.c_str()) != XML_SUCCESS) {
+	if (doc.Parse(xml_content.c_str()) != tinyxml2::XML_SUCCESS) {
 		throw std::runtime_error("Failed to parse dictionary XML from: " + path);
 	}
 
@@ -61,8 +58,8 @@ FixDictionary FixDictionaryLoader::LoadBase(ClientContext &context, const std::s
 // ===========================================================
 // FIELD LOADING
 // ===========================================================
-void FixDictionaryLoader::LoadFields(FixDictionary &dict, XMLElement *fields_root) {
-	for (XMLElement *field = fields_root->FirstChildElement("field"); field != nullptr;
+void FixDictionaryLoader::LoadFields(FixDictionary &dict, tinyxml2::XMLElement *fields_root) {
+	for (tinyxml2::XMLElement *field = fields_root->FirstChildElement("field"); field != nullptr;
 	     field = field->NextSiblingElement("field")) {
 		FixFieldDef def;
 		def.tag = field->IntAttribute("number");
@@ -72,7 +69,7 @@ void FixDictionaryLoader::LoadFields(FixDictionary &dict, XMLElement *fields_roo
 		dict.name_to_tag[def.name] = def.tag;
 
 		// Enums
-		for (XMLElement *val = field->FirstChildElement("value"); val != nullptr;
+		for (tinyxml2::XMLElement *val = field->FirstChildElement("value"); val != nullptr;
 		     val = val->NextSiblingElement("value")) {
 			FixEnum e;
 			e.enum_value = val->Attribute("enum");
@@ -87,7 +84,7 @@ void FixDictionaryLoader::LoadFields(FixDictionary &dict, XMLElement *fields_roo
 // ===========================================================
 // GROUP LOADER (recursive)
 // ===========================================================
-FixGroupDef FixDictionaryLoader::LoadGroup(FixDictionary &dict, XMLElement *group) {
+FixGroupDef FixDictionaryLoader::LoadGroup(FixDictionary &dict, tinyxml2::XMLElement *group) {
 	FixGroupDef g;
 
 	const char *group_name = group->Attribute("name");
@@ -99,13 +96,13 @@ FixGroupDef FixDictionaryLoader::LoadGroup(FixDictionary &dict, XMLElement *grou
 	g.count_tag = count_tag;
 
 	// group fields
-	for (XMLElement *f = group->FirstChildElement("field"); f != nullptr; f = f->NextSiblingElement("field")) {
+	for (tinyxml2::XMLElement *f = group->FirstChildElement("field"); f != nullptr; f = f->NextSiblingElement("field")) {
 		const char *fname = f->Attribute("name");
 		g.field_tags.push_back(dict.name_to_tag[fname]);
 	}
 
 	// nested groups
-	for (XMLElement *sub = group->FirstChildElement("group"); sub != nullptr; sub = sub->NextSiblingElement("group")) {
+	for (tinyxml2::XMLElement *sub = group->FirstChildElement("group"); sub != nullptr; sub = sub->NextSiblingElement("group")) {
 		FixGroupDef sub_def = LoadGroup(dict, sub);
 		g.subgroups[sub_def.count_tag] = sub_def;
 	}
@@ -116,14 +113,14 @@ FixGroupDef FixDictionaryLoader::LoadGroup(FixDictionary &dict, XMLElement *grou
 // ===========================================================
 // COMPONENT LOADING
 // ===========================================================
-void FixDictionaryLoader::LoadComponents(FixDictionary &dict, XMLElement *components_root) {
-	for (XMLElement *comp = components_root->FirstChildElement("component"); comp != nullptr;
+void FixDictionaryLoader::LoadComponents(FixDictionary &dict, tinyxml2::XMLElement *components_root) {
+	for (tinyxml2::XMLElement *comp = components_root->FirstChildElement("component"); comp != nullptr;
 	     comp = comp->NextSiblingElement("component")) {
 		FixComponentDef c;
 		c.name = comp->Attribute("name");
 
 		// fields in component
-		for (XMLElement *field = comp->FirstChildElement("field"); field != nullptr;
+		for (tinyxml2::XMLElement *field = comp->FirstChildElement("field"); field != nullptr;
 		     field = field->NextSiblingElement("field")) {
 			const char *fname = field->Attribute("name");
 			if (fname) {
@@ -132,7 +129,7 @@ void FixDictionaryLoader::LoadComponents(FixDictionary &dict, XMLElement *compon
 		}
 
 		// groups in component
-		for (XMLElement *group = comp->FirstChildElement("group"); group != nullptr;
+		for (tinyxml2::XMLElement *group = comp->FirstChildElement("group"); group != nullptr;
 		     group = group->NextSiblingElement("group")) {
 			FixGroupDef g = LoadGroup(dict, group);
 			c.groups[g.count_tag] = g;
@@ -145,24 +142,27 @@ void FixDictionaryLoader::LoadComponents(FixDictionary &dict, XMLElement *compon
 // ===========================================================
 // EXPAND COMPONENT REFERENCE INTO MESSAGE
 // ===========================================================
-void FixDictionaryLoader::ExpandComponent(FixDictionary &dict, FixMessageDef &msg, XMLElement *comp_ref) {
+void FixDictionaryLoader::ExpandComponent(FixDictionary &dict, FixMessageDef &msg, tinyxml2::XMLElement *comp_ref) {
 	const char *comp_name = comp_ref->Attribute("name");
-	if (!comp_name)
+	if (!comp_name) {
 		return;
+	}
 
 	auto it = dict.components.find(comp_name);
-	if (it == dict.components.end())
+	if (it == dict.components.end()) {
 		return;
+	}
 
 	const FixComponentDef &comp = it->second;
 
 	// Add component's fields to message
 	bool required = comp_ref->Attribute("required") && strcmp(comp_ref->Attribute("required"), "Y") == 0;
 	for (int tag : comp.field_tags) {
-		if (required)
+		if (required) {
 			msg.required_fields.push_back(tag);
-		else
+		} else {
 			msg.optional_fields.push_back(tag);
+		}
 	}
 
 	// Add component's groups to message
@@ -174,16 +174,16 @@ void FixDictionaryLoader::ExpandComponent(FixDictionary &dict, FixMessageDef &ms
 // ===========================================================
 // MESSAGE LOADING
 // ===========================================================
-void FixDictionaryLoader::LoadMessages(FixDictionary &dict, XMLElement *messages_root) {
+void FixDictionaryLoader::LoadMessages(FixDictionary &dict, tinyxml2::XMLElement *messages_root) {
 
-	for (XMLElement *msg = messages_root->FirstChildElement("message"); msg != nullptr;
+	for (tinyxml2::XMLElement *msg = messages_root->FirstChildElement("message"); msg != nullptr;
 	     msg = msg->NextSiblingElement("message")) {
 		FixMessageDef m;
 		m.name = msg->Attribute("name");
 		m.msg_type = msg->Attribute("msgtype");
 
 		// Iterate through all child elements in order
-		for (XMLElement *child = msg->FirstChildElement(); child != nullptr; child = child->NextSiblingElement()) {
+		for (tinyxml2::XMLElement *child = msg->FirstChildElement(); child != nullptr; child = child->NextSiblingElement()) {
 			const char *child_name = child->Name();
 
 			if (strcmp(child_name, "field") == 0) {
@@ -192,10 +192,11 @@ void FixDictionaryLoader::LoadMessages(FixDictionary &dict, XMLElement *messages
 				bool required = child->Attribute("required") && strcmp(child->Attribute("required"), "Y") == 0;
 
 				int tag = dict.name_to_tag[fname];
-				if (required)
+				if (required) {
 					m.required_fields.push_back(tag);
-				else
+				} else {
 					m.optional_fields.push_back(tag);
+				}
 			} else if (strcmp(child_name, "group") == 0) {
 				// Direct group
 				FixGroupDef g = LoadGroup(dict, child);
@@ -213,12 +214,12 @@ void FixDictionaryLoader::LoadMessages(FixDictionary &dict, XMLElement *messages
 // ===========================================================
 // APPLY OVERLAY XML (dialects, custom fields, etc.)
 // ===========================================================
-void FixDictionaryLoader::ApplyOverlay(ClientContext &context, FixDictionary &dict, const std::string &path) {
-	XMLDocument doc;
+void FixDictionaryLoader::ApplyOverlay(duckdb::ClientContext &context, FixDictionary &dict, const std::string &path) {
+	tinyxml2::XMLDocument doc;
 
 	// Phase 7.8: Use DuckDB FileSystem to support S3, HTTP, etc.
-	auto &fs = FileSystem::GetFileSystem(context);
-	auto handle = fs.OpenFile(path, FileFlags::FILE_FLAGS_READ);
+	auto &fs = duckdb::FileSystem::GetFileSystem(context);
+	auto handle = fs.OpenFile(path, duckdb::FileFlags::FILE_FLAGS_READ);
 
 	// Read entire file into string
 	auto file_size = fs.GetFileSize(*handle);
@@ -227,13 +228,14 @@ void FixDictionaryLoader::ApplyOverlay(ClientContext &context, FixDictionary &di
 	handle->Read((void *)xml_content.data(), file_size);
 
 	// Parse XML from string
-	if (doc.Parse(xml_content.c_str()) != XML_SUCCESS) {
+	if (doc.Parse(xml_content.c_str()) != tinyxml2::XML_SUCCESS) {
 		throw std::runtime_error("Failed to parse overlay XML from: " + path);
 	}
 
 	auto *root = doc.RootElement();
-	if (!root)
+	if (!root) {
 		throw std::runtime_error("Overlay XML missing root element.");
+	}
 
 	if (auto *fields_root = root->FirstChildElement("fields")) {
 		LoadFields(dict, fields_root);

@@ -3,14 +3,14 @@
 #include <cstring>
 #include <cstdlib>
 
-using namespace duckdb::FixHotTags;
-
 bool FixTokenizer::IsNumeric(const char *str, size_t len) {
-	if (len == 0)
+	if (len == 0) {
 		return false;
+	}
 	for (size_t i = 0; i < len; i++) {
-		if (str[i] < '0' || str[i] > '9')
+		if (str[i] < '0' || str[i] > '9') {
 			return false;
+		}
 	}
 	return true;
 }
@@ -41,79 +41,79 @@ bool FixTokenizer::ParseTag(const char *tag_str, size_t tag_len, const char *val
 	// Store in appropriate field based on tag number
 	// Using centralized FixHotTags constants for maintainability
 	switch (tag) {
-	case MSG_TYPE:
+	case duckdb::FixHotTags::MSG_TYPE:
 		msg.msg_type = value;
 		msg.msg_type_len = value_len;
 		break;
-	case SENDER_COMP_ID:
+	case duckdb::FixHotTags::SENDER_COMP_ID:
 		msg.sender_comp_id = value;
 		msg.sender_comp_id_len = value_len;
 		break;
-	case TARGET_COMP_ID:
+	case duckdb::FixHotTags::TARGET_COMP_ID:
 		msg.target_comp_id = value;
 		msg.target_comp_id_len = value_len;
 		break;
-	case MSG_SEQ_NUM:
+	case duckdb::FixHotTags::MSG_SEQ_NUM:
 		msg.msg_seq_num = value;
 		msg.msg_seq_num_len = value_len;
 		break;
-	case SENDING_TIME:
+	case duckdb::FixHotTags::SENDING_TIME:
 		msg.sending_time = value;
 		msg.sending_time_len = value_len;
 		break;
-	case CL_ORD_ID:
+	case duckdb::FixHotTags::CL_ORD_ID:
 		msg.cl_ord_id = value;
 		msg.cl_ord_id_len = value_len;
 		break;
-	case ORDER_ID:
+	case duckdb::FixHotTags::ORDER_ID:
 		msg.order_id = value;
 		msg.order_id_len = value_len;
 		break;
-	case EXEC_ID:
+	case duckdb::FixHotTags::EXEC_ID:
 		msg.exec_id = value;
 		msg.exec_id_len = value_len;
 		break;
-	case SYMBOL:
+	case duckdb::FixHotTags::SYMBOL:
 		msg.symbol = value;
 		msg.symbol_len = value_len;
 		break;
-	case SIDE:
+	case duckdb::FixHotTags::SIDE:
 		msg.side = value;
 		msg.side_len = value_len;
 		break;
-	case EXEC_TYPE:
+	case duckdb::FixHotTags::EXEC_TYPE:
 		msg.exec_type = value;
 		msg.exec_type_len = value_len;
 		break;
-	case ORD_STATUS:
+	case duckdb::FixHotTags::ORD_STATUS:
 		msg.ord_status = value;
 		msg.ord_status_len = value_len;
 		break;
-	case PRICE:
+	case duckdb::FixHotTags::PRICE:
 		msg.price = value;
 		msg.price_len = value_len;
 		break;
-	case ORDER_QTY:
+	case duckdb::FixHotTags::ORDER_QTY:
 		msg.order_qty = value;
 		msg.order_qty_len = value_len;
 		break;
-	case CUM_QTY:
+	case duckdb::FixHotTags::CUM_QTY:
 		msg.cum_qty = value;
 		msg.cum_qty_len = value_len;
 		break;
-	case LEAVES_QTY:
+	case duckdb::FixHotTags::LEAVES_QTY:
 		msg.leaves_qty = value;
 		msg.leaves_qty_len = value_len;
 		break;
-	case LAST_PX:
+	case duckdb::FixHotTags::LAST_PX:
 		msg.last_px = value;
 		msg.last_px_len = value_len;
 		break;
-	case LAST_QTY:
+	case duckdb::FixHotTags::LAST_QTY:
 		msg.last_qty = value;
 		msg.last_qty_len = value_len;
 		break;
-	case TEXT:
+	case duckdb::FixHotTags::TEXT:
 		msg.text = value;
 		msg.text_len = value_len;
 		break;
