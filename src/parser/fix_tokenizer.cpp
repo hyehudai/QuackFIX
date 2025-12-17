@@ -1,6 +1,9 @@
 #include "fix_tokenizer.hpp"
+#include "fix_hot_tags.hpp"
 #include <cstring>
 #include <cstdlib>
+
+using namespace duckdb::FixHotTags;
 
 bool FixTokenizer::IsNumeric(const char* str, size_t len) {
     if (len == 0) return false;
@@ -33,26 +36,27 @@ bool FixTokenizer::ParseTag(const char* tag_str, size_t tag_len, const char* val
     msg.all_tags_ordered.push_back({tag, {value, value_len}});
 
     // Store in appropriate field based on tag number
+    // Using centralized FixHotTags constants for maintainability
     switch (tag) {
-        case 35:  msg.msg_type = value; msg.msg_type_len = value_len; break;
-        case 49:  msg.sender_comp_id = value; msg.sender_comp_id_len = value_len; break;
-        case 56:  msg.target_comp_id = value; msg.target_comp_id_len = value_len; break;
-        case 34:  msg.msg_seq_num = value; msg.msg_seq_num_len = value_len; break;
-        case 52:  msg.sending_time = value; msg.sending_time_len = value_len; break;
-        case 11:  msg.cl_ord_id = value; msg.cl_ord_id_len = value_len; break;
-        case 37:  msg.order_id = value; msg.order_id_len = value_len; break;
-        case 17:  msg.exec_id = value; msg.exec_id_len = value_len; break;
-        case 55:  msg.symbol = value; msg.symbol_len = value_len; break;
-        case 54:  msg.side = value; msg.side_len = value_len; break;
-        case 150: msg.exec_type = value; msg.exec_type_len = value_len; break;
-        case 39:  msg.ord_status = value; msg.ord_status_len = value_len; break;
-        case 44:  msg.price = value; msg.price_len = value_len; break;
-        case 38:  msg.order_qty = value; msg.order_qty_len = value_len; break;
-        case 14:  msg.cum_qty = value; msg.cum_qty_len = value_len; break;
-        case 151: msg.leaves_qty = value; msg.leaves_qty_len = value_len; break;
-        case 31:  msg.last_px = value; msg.last_px_len = value_len; break;
-        case 32:  msg.last_qty = value; msg.last_qty_len = value_len; break;
-        case 58:  msg.text = value; msg.text_len = value_len; break;
+        case MSG_TYPE:        msg.msg_type = value; msg.msg_type_len = value_len; break;
+        case SENDER_COMP_ID:  msg.sender_comp_id = value; msg.sender_comp_id_len = value_len; break;
+        case TARGET_COMP_ID:  msg.target_comp_id = value; msg.target_comp_id_len = value_len; break;
+        case MSG_SEQ_NUM:     msg.msg_seq_num = value; msg.msg_seq_num_len = value_len; break;
+        case SENDING_TIME:    msg.sending_time = value; msg.sending_time_len = value_len; break;
+        case CL_ORD_ID:       msg.cl_ord_id = value; msg.cl_ord_id_len = value_len; break;
+        case ORDER_ID:        msg.order_id = value; msg.order_id_len = value_len; break;
+        case EXEC_ID:         msg.exec_id = value; msg.exec_id_len = value_len; break;
+        case SYMBOL:          msg.symbol = value; msg.symbol_len = value_len; break;
+        case SIDE:            msg.side = value; msg.side_len = value_len; break;
+        case EXEC_TYPE:       msg.exec_type = value; msg.exec_type_len = value_len; break;
+        case ORD_STATUS:      msg.ord_status = value; msg.ord_status_len = value_len; break;
+        case PRICE:           msg.price = value; msg.price_len = value_len; break;
+        case ORDER_QTY:       msg.order_qty = value; msg.order_qty_len = value_len; break;
+        case CUM_QTY:         msg.cum_qty = value; msg.cum_qty_len = value_len; break;
+        case LEAVES_QTY:      msg.leaves_qty = value; msg.leaves_qty_len = value_len; break;
+        case LAST_PX:         msg.last_px = value; msg.last_px_len = value_len; break;
+        case LAST_QTY:        msg.last_qty = value; msg.last_qty_len = value_len; break;
+        case TEXT:            msg.text = value; msg.text_len = value_len; break;
         default:
             // Store in other_tags map
             msg.other_tags[tag] = {value, value_len};

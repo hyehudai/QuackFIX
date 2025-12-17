@@ -27,6 +27,19 @@ The main table function for reading and parsing FIX protocol log files.
 SELECT * FROM read_fix('path/to/file.fix');
 ```
 
+**Output:**
+```
+┌─────────┬──────────────┬──────────────┬───────────┬─────────────────────┬───┬─────────┬─────────┬──────────────────────┬──────────────────────┬──────────────────────┬─────────────┐
+│ MsgType │ SenderCompID │ TargetCompID │ MsgSeqNum │     SendingTime     │ … │ LastQty │  Text   │         tags         │        groups        │     raw_message      │ parse_error │
+│ varchar │   varchar    │   varchar    │   int64   │      timestamp      │   │ double  │ varchar │ map(integer, varch…  │ map(integer, map(i…  │       varchar        │   varchar   │
+├─────────┼──────────────┼──────────────┼───────────┼─────────────────────┼───┼─────────┼─────────┼──────────────────────┼──────────────────────┼──────────────────────┼─────────────┤
+│ D       │ SENDER       │ TARGET       │         1 │ 2023-12-15 10:30:00 │ … │    NULL │ NULL    │ {10=000, 59=0, 40=…  │ NULL                 │ 8=FIX.4.4|9=178|35…  │ NULL        │
+│ 8       │ TARGET       │ SENDER       │         2 │ 2023-12-15 10:30:01 │ … │   100.0 │ NULL    │ {10=000, 9=195, 8=…  │ NULL                 │ 8=FIX.4.4|9=195|35…  │ NULL        │
+├─────────┴──────────────┴──────────────┴───────────┴─────────────────────┴───┴─────────┴─────────┴──────────────────────┴──────────────────────┴──────────────────────┴─────────────┤
+│ 2 rows                                                                                                                                                       23 columns (11 shown) │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ### Parameters
 
 #### file_path (required)
@@ -41,13 +54,38 @@ SELECT * FROM read_fix('path/to/file.fix');
 ```sql
 -- Single file
 SELECT * FROM read_fix('logs/trading.fix');
+```
 
+**Output:**
+| MsgType | Symbol | Side | Price | OrderQty |
+|---------|--------|------|--------|----------|
+| D | AAPL | 1 | 150.50 | 100.0 |
+| 8 | AAPL | 1 | 150.50 | 100.0 |
+| D | MSFT | 2 | 380.25 | 50.0 |
+
+```sql
 -- Multiple files with glob
 SELECT * FROM read_fix('logs/2023-12-*.fix');
+```
 
+**Output:**
+| MsgType | Symbol | SendingTime |
+|---------|--------|----------------------|
+| D | AAPL | 2023-12-15 10:30:00 |
+| 8 | AAPL | 2023-12-15 10:30:01 |
+| D | MSFT | 2023-12-16 09:15:00 |
+| 8 | MSFT | 2023-12-16 09:15:01 |
+
+```sql
 -- S3 bucket
 SELECT * FROM read_fix('s3://my-bucket/fix-logs/*.fix');
 ```
+
+**Output:**
+| MsgType | Symbol | OrderQty |
+|---------|--------|----------|
+| D | TSLA | 200.0 |
+| 8 | TSLA | 200.0 |
 
 #### dictionary (optional)
 **Type:** `VARCHAR`  
@@ -58,10 +96,23 @@ SELECT * FROM read_fix('s3://my-bucket/fix-logs/*.fix');
 ```sql
 -- Use default FIX 4.4 dictionary
 SELECT * FROM read_fix('logs/trading.fix');
+```
 
+**Output:**
+| MsgType | Symbol | Price |
+|---------|--------|--------|
+| D | AAPL | 150.50 |
+| 8 | AAPL | 150.50 |
+
+```sql
 -- Use custom dictionary
 SELECT * FROM read_fix('logs/trading.fix', dictionary='dialects/CME.xml');
 ```
+
+**Output:**
+| MsgType | Symbol | Price | CMECustomTag |
+|---------|--------|--------|--------------|
+| D | ES | 4500.25 | CME_VALUE |
 
 #### delimiter (optional)
 **Type:** `VARCHAR`  
@@ -74,10 +125,24 @@ SELECT * FROM read_fix('logs/trading.fix', dictionary='dialects/CME.xml');
 ```sql
 -- Pipe-delimited (default)
 SELECT * FROM read_fix('logs/trading.fix');
+```
 
+**Output:**
+| MsgType | Symbol | Price |
+|---------|--------|--------|
+| D | AAPL | 150.50 |
+| 8 | AAPL | 150.50 |
+
+```sql
 -- SOH-delimited
 SELECT * FROM read_fix('logs/trading.fix', delimiter='\x01');
 ```
+
+**Output:**
+| MsgType | Symbol | Price |
+|---------|--------|--------|
+| D | MSFT | 380.25 |
+| 8 | MSFT | 380.25 |
 
 #### rtags (optional)
 **Type:** `LIST(VARCHAR)`  
@@ -88,11 +153,32 @@ SELECT * FROM read_fix('logs/trading.fix', delimiter='\x01');
 -- Add TransactTime as a column
 SELECT MsgType, Symbol, TransactTime 
 FROM read_fix('logs/trading.fix', rtags=['TransactTime']);
+```
 
+**Output:**
+```
+┌─────────┬─────────┬───────────────────┐
+│ MsgType │ Symbol  │   TransactTime    │
+│ varchar │ varchar │      varchar      │
+├─────────┼─────────┼───────────────────┤
+│ D       │ AAPL    │ 20231215-10:30:00 │
+│ 8       │ AAPL    │ NULL              │
+│ D       │ MSFT    │ 20231215-10:31:00 │
+└─────────┴─────────┴───────────────────┘
+```
+
+```sql
 -- Add multiple custom tags
 SELECT * FROM read_fix('logs/trading.fix', 
     rtags=['TransactTime', 'SecurityType', 'MaturityMonthYear']);
 ```
+
+**Output:**
+| MsgType | Symbol | TransactTime | SecurityType | MaturityMonthYear |
+|---------|--------|----------------------|--------------|-------------------|
+| D | AAPL | 20231215-10:30:00 | CS | NULL |
+| 8 | AAPL | NULL | CS | NULL |
+| D | ESZ3 | 20231215-10:32:00 | FUT | 202312 |
 
 #### tagIds (optional)
 **Type:** `LIST(INTEGER)`  
@@ -103,15 +189,38 @@ SELECT * FROM read_fix('logs/trading.fix',
 -- Add tag 60 (TransactTime)
 SELECT MsgType, Symbol, Tag60 
 FROM read_fix('logs/trading.fix', tagIds=[60]);
+```
 
+**Output:**
+| MsgType | Symbol | Tag60 |
+|---------|--------|----------------------|
+| D | AAPL | 20231215-10:30:00 |
+| 8 | AAPL | NULL |
+| D | MSFT | 20231215-10:31:00 |
+
+```sql
 -- Add multiple tags
 SELECT * FROM read_fix('logs/trading.fix', tagIds=[60, 167, 200]);
+```
 
+**Output:**
+| MsgType | Symbol | Tag60 | Tag167 | Tag200 |
+|---------|--------|----------------------|--------|--------|
+| D | AAPL | 20231215-10:30:00 | CS | NULL |
+| 8 | AAPL | NULL | CS | NULL |
+
+```sql
 -- Mix with rtags (duplicates removed automatically)
 SELECT * FROM read_fix('logs/trading.fix', 
     rtags=['TransactTime'], 
     tagIds=[167]);
 ```
+
+**Output:**
+| MsgType | Symbol | TransactTime | Tag167 |
+|---------|--------|----------------------|--------|
+| D | AAPL | 20231215-10:30:00 | CS |
+| 8 | AAPL | NULL | CS |
 
 ### Output Schema
 
@@ -345,20 +454,68 @@ fix_fields(dictionary VARCHAR) → TABLE(
 ```sql
 -- All fields
 SELECT * FROM fix_fields('dialects/FIX44.xml');
+```
 
+**Output:**
+```
+┌───────┬──────────────┬─────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  tag  │     name     │  type   │                                                                enum_values                                                                │
+│ int32 │   varchar    │ varchar │                                               struct("enum" varchar, description varchar)[]                                               │
+├───────┼──────────────┼─────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│     1 │ Account      │ STRING  │ NULL                                                                                                                                      │
+│     2 │ AdvId        │ STRING  │ NULL                                                                                                                                      │
+│     3 │ AdvRefID     │ STRING  │ NULL                                                                                                                                      │
+│     4 │ AdvSide      │ CHAR    │ [{'enum': B, 'description': BUY}, {'enum': S, 'description': SELL}, {'enum': X, 'description': CROSS}, {'enum': T, 'description': TRADE}] │
+│     5 │ AdvTransType │ STRING  │ [{'enum': N, 'description': NEW}, {'enum': C, 'description': CANCEL}, {'enum': R, 'description': REPLACE}]                                │
+└───────┴──────────────┴─────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+```sql
 -- Price fields only
 SELECT * FROM fix_fields('dialects/FIX44.xml') 
 WHERE type = 'PRICE';
+```
 
+**Output:**
+```
+┌───────┬─────────┬─────────┬───────────────────────────────────────────────┐
+│  tag  │  name   │  type   │                  enum_values                  │
+│ int32 │ varchar │ varchar │ struct("enum" varchar, description varchar)[] │
+├───────┼─────────┼─────────┼───────────────────────────────────────────────┤
+│     6 │ AvgPx   │ PRICE   │ NULL                                          │
+│    31 │ LastPx  │ PRICE   │ NULL                                          │
+│    44 │ Price   │ PRICE   │ NULL                                          │
+│    99 │ StopPx  │ PRICE   │ NULL                                          │
+└───────┴─────────┴─────────┴───────────────────────────────────────────────┘
+```
+
+```sql
 -- Fields with enum values
 SELECT tag, name, enum_values 
 FROM fix_fields('dialects/FIX44.xml')
 WHERE enum_values IS NOT NULL;
+```
 
+**Output:**
+| tag | name | enum_values |
+|-----|----------|-------------|
+| 35 | MsgType | [{enum: "0", description: "Heartbeat"}, {enum: "D", description: "NewOrderSingle"}, ...] |
+| 39 | OrdStatus | [{enum: "0", description: "New"}, {enum: "1", description: "PartiallyFilled"}, ...] |
+| 54 | Side | [{enum: "1", description: "Buy"}, {enum: "2", description: "Sell"}] |
+
+```sql
 -- Search by name
 SELECT * FROM fix_fields('dialects/FIX44.xml')
 WHERE name LIKE '%Order%';
 ```
+
+**Output:**
+| tag | name | type | enum_values |
+|-----|-------------|--------|-------------|
+| 11 | ClOrdID | STRING | NULL |
+| 37 | OrderID | STRING | NULL |
+| 38 | OrderQty | QTY | NULL |
+| 66 | ListID | STRING | NULL |
 
 ### fix_message_fields(dictionary)
 
@@ -391,23 +548,72 @@ fix_message_fields(dictionary VARCHAR) → TABLE(
 -- All fields for NewOrderSingle
 SELECT * FROM fix_message_fields('dialects/FIX44.xml') 
 WHERE msgtype = 'D';
+```
 
+**Output:**
+```
+┌─────────┬────────────────┬──────────┬───────┬──────────────────┬──────────┬──────────┐
+│ msgtype │      name      │ category │  tag  │    field_name    │ required │ group_id │
+│ varchar │    varchar     │ varchar  │ int32 │     varchar      │ boolean  │  int32   │
+├─────────┼────────────────┼──────────┼───────┼──────────────────┼──────────┼──────────┤
+│ D       │ NewOrderSingle │ required │    11 │ ClOrdID          │ true     │     NULL │
+│ D       │ NewOrderSingle │ required │    55 │ Symbol           │ true     │     NULL │
+│ D       │ NewOrderSingle │ required │    65 │ SymbolSfx        │ true     │     NULL │
+│ D       │ NewOrderSingle │ required │    48 │ SecurityID       │ true     │     NULL │
+│ D       │ NewOrderSingle │ required │    22 │ SecurityIDSource │ true     │     NULL │
+│ D       │ NewOrderSingle │ required │   460 │ Product          │ true     │     NULL │
+│ D       │ NewOrderSingle │ required │   461 │ CFICode          │ true     │     NULL │
+└─────────┴────────────────┴──────────┴───────┴──────────────────┴──────────┴──────────┘
+```
+
+```sql
 -- Required fields only
 SELECT msgtype, name, field_name 
 FROM fix_message_fields('dialects/FIX44.xml')
 WHERE required = true;
+```
 
+**Output:**
+| msgtype | name | field_name |
+|---------|----------------------|------------|
+| D | NewOrderSingle | ClOrdID |
+| D | NewOrderSingle | HandlInst |
+| D | NewOrderSingle | Symbol |
+| D | NewOrderSingle | Side |
+| 8 | ExecutionReport | OrderID |
+| 8 | ExecutionReport | ExecID |
+
+```sql
 -- Group fields
 SELECT msgtype, name, field_name, group_id
 FROM fix_message_fields('dialects/FIX44.xml')
 WHERE group_id IS NOT NULL;
+```
 
+**Output:**
+| msgtype | name | field_name | group_id |
+|---------|----------------------|------------|----------|
+| D | NewOrderSingle | PartyID | 453 |
+| D | NewOrderSingle | PartyRole | 453 |
+| 8 | ExecutionReport | PartyID | 453 |
+| W | MarketDataSnapshot | MDEntryType | 268 |
+| W | MarketDataSnapshot | MDEntryPx | 268 |
+
+```sql
 -- Count fields per message type
 SELECT msgtype, name, COUNT(*) as field_count
 FROM fix_message_fields('dialects/FIX44.xml')
 GROUP BY msgtype, name
 ORDER BY field_count DESC;
 ```
+
+**Output:**
+| msgtype | name | field_count |
+|---------|----------------------|-------------|
+| 8 | ExecutionReport | 87 |
+| D | NewOrderSingle | 64 |
+| W | MarketDataSnapshot | 45 |
+| G | OrderCancelRequest | 32 |
 
 ### fix_groups(dictionary)
 
@@ -433,22 +639,62 @@ fix_groups(dictionary VARCHAR) → TABLE(
 ```sql
 -- All groups
 SELECT * FROM fix_groups('dialects/FIX44.xml');
+```
 
+**Output:**
+```
+┌───────────┬──────────────────────────────────────┬──────────────────────────────────┬───────────────┐
+│ group_tag │              field_tag               │          message_types           │     name      │
+│   int32   │               int32[]                │            varchar[]             │    varchar    │
+├───────────┼──────────────────────────────────────┼──────────────────────────────────┼───────────────┤
+│        33 │ [58, 354, 355]                       │ [B, C]                           │ NoLinesOfText │
+│        73 │ [11, 37, 198, 526, 66, 38, 799, 800] │ [AK, AS, BH, E, J, N]            │ NoOrders      │
+│        78 │ [79, 661, 736, 467, 80]              │ [AB, AC, AR, AS, AT, D, G, J, P] │ NoAllocs      │
+│       124 │ [17]                                 │ [AS, AX, AY, AZ, BA, BB, BG, J]  │ NoExecs       │
+└───────────┴──────────────────────────────────────┴──────────────────────────────────┴───────────────┘
+```
+
+```sql
 -- Groups used by multiple message types
 SELECT group_tag, name, list_count(message_types) as msg_count
 FROM fix_groups('dialects/FIX44.xml')
 WHERE list_count(message_types) > 1
 ORDER BY msg_count DESC;
+```
 
+**Output:**
+| group_tag | name | msg_count |
+|-----------|------------|-----------|
+| 453 | NoPartyIDs | 42 |
+| 232 | NoStipulations | 18 |
+| 555 | NoLegs | 12 |
+| 78 | NoAllocs | 8 |
+
+```sql
 -- Find groups by name
 SELECT * FROM fix_groups('dialects/FIX44.xml')
 WHERE name LIKE '%Party%';
+```
 
+**Output:**
+| group_tag | field_tag | message_types | name |
+|-----------|-----------------|---------------|------------|
+| 453 | [448, 447, 452] | [D, 8, G, ...] | NoPartyIDs |
+
+```sql
 -- Groups with many fields
 SELECT group_tag, name, list_count(field_tag) as field_count
 FROM fix_groups('dialects/FIX44.xml')
 ORDER BY field_count DESC;
 ```
+
+**Output:**
+| group_tag | name | field_count |
+|-----------|-------------|-------------|
+| 555 | NoLegs | 15 |
+| 78 | NoAllocs | 12 |
+| 453 | NoPartyIDs | 3 |
+| 268 | NoMDEntries | 3 |
 
 ---
 
@@ -473,15 +719,39 @@ groups MAP(INTEGER, LIST(MAP(INTEGER, VARCHAR)))
 -- Check if message has any groups
 SELECT * FROM read_fix('logs/trading.fix')
 WHERE groups IS NOT NULL;
+```
 
+**Output:**
+| MsgType | Symbol | groups |
+|---------|--------|--------|
+| 8 | TSLA | {453: [{448: "BROKER1", 447: "D", 452: "1"}, {448: "CLEARHOUSE", 447: "D", 452: "4"}]} |
+| W | AAPL | {268: [{269: "0", 270: "150.45", 271: "500"}, {269: "1", 270: "150.55", 271: "300"}]} |
+
+```sql
 -- Check for specific group (NoPartyIDs = tag 453)
 SELECT * FROM read_fix('logs/trading.fix')
 WHERE groups[453] IS NOT NULL;
+```
 
+**Output:**
+| MsgType | Symbol | ClOrdID | groups |
+|---------|--------|----------|--------|
+| 8 | TSLA | ORDER789 | {453: [{448: "BROKER1", 447: "D", 452: "1"}, {448: "CLEARHOUSE", 447: "D", 452: "4"}]} |
+
+```sql
 -- Access entire group
 SELECT MsgType, Symbol, groups[453] as Parties
 FROM read_fix('logs/trading.fix');
+```
 
+**Output:**
+| MsgType | Symbol | Parties |
+|---------|--------|---------|
+| D | AAPL | NULL |
+| 8 | AAPL | NULL |
+| 8 | TSLA | [{448: "BROKER1", 447: "D", 452: "1"}, {448: "CLEARHOUSE", 447: "D", 452: "4"}] |
+
+```sql
 -- Unnest groups (requires DuckDB list functions)
 -- This is more complex, see DuckDB docs for unnest patterns
 ```
@@ -500,15 +770,43 @@ The `tags` column contains all non-hot tags as a MAP:
 -- Access specific tag
 SELECT Symbol, tags[60] as TransactTime 
 FROM read_fix('logs/trading.fix');
+```
 
+**Output:**
+```
+┌─────────┬───────────────────┐
+│ Symbol  │   TransactTime    │
+│ varchar │      varchar      │
+├─────────┼───────────────────┤
+│ AAPL    │ 20231215-10:30:00 │
+│ AAPL    │ NULL              │
+│ MSFT    │ 20231215-10:31:00 │
+│ MSFT    │ NULL              │
+└─────────┴───────────────────┘
+```
+
+```sql
 -- Check if tag exists
 SELECT * FROM read_fix('logs/trading.fix')
 WHERE tags[60] IS NOT NULL;
+```
 
+**Output:**
+| MsgType | Symbol | tags |
+|---------|--------|------|
+| D | AAPL | {60: "20231215-10:30:00", 21: "1", 40: "2", 59: "0"} |
+| D | MSFT | {60: "20231215-10:31:00", 21: "1", 40: "2", 59: "0"} |
+
+```sql
 -- Count messages with specific tag
 SELECT COUNT(*) FROM read_fix('logs/trading.fix')
 WHERE tags[167] IS NOT NULL;  -- Tag 167 = SecurityType
 ```
+
+**Output:**
+| count |
+|-------|
+| 0 |
 
 ### Cloud Storage Support
 
@@ -556,17 +854,41 @@ Parse errors are non-fatal and reported in the `parse_error` column:
 -- Find messages with errors
 SELECT * FROM read_fix('logs/trading.fix')
 WHERE parse_error IS NOT NULL;
+```
 
+**Output:**
+| MsgType | Symbol | Price | parse_error |
+|---------|--------|--------|-------------|
+| D | AAPL | NULL | Invalid Price: 'INVALID' |
+| 8 | MSFT | NULL | Invalid SendingTime: '20231315-10:30:00' |
+
+```sql
 -- Count error types
 SELECT parse_error, COUNT(*) as count
 FROM read_fix('logs/trading.fix')
 WHERE parse_error IS NOT NULL
 GROUP BY parse_error;
+```
 
+**Output:**
+| parse_error | count |
+|-------------|-------|
+| Invalid Price: 'INVALID' | 3 |
+| Invalid SendingTime: '20231315-10:30:00' | 1 |
+| Invalid MsgSeqNum: 'abc' | 2 |
+
+```sql
 -- Valid messages only
 SELECT * FROM read_fix('logs/trading.fix')
 WHERE parse_error IS NULL;
 ```
+
+**Output:**
+| MsgType | Symbol | Price | parse_error |
+|---------|--------|--------|-------------|
+| D | AAPL | 150.50 | NULL |
+| 8 | AAPL | 150.50 | NULL |
+| D | MSFT | 380.25 | NULL |
 
 **Common Errors:**
 - `"Invalid MsgSeqNum: 'abc'"` - Non-numeric value in numeric field
@@ -581,17 +903,45 @@ SendingTime is a TIMESTAMP, enabling time-based queries:
 -- Filter by date
 SELECT * FROM read_fix('logs/trading.fix')
 WHERE SendingTime::DATE = '2023-12-15';
+```
 
+**Output:**
+| MsgType | Symbol | SendingTime |
+|---------|--------|----------------------|
+| D | AAPL | 2023-12-15 10:30:00 |
+| 8 | AAPL | 2023-12-15 10:30:01 |
+| D | MSFT | 2023-12-15 10:31:00 |
+
+```sql
 -- Filter by time range
 SELECT * FROM read_fix('logs/trading.fix')
 WHERE SendingTime BETWEEN '2023-12-15 09:30:00' AND '2023-12-15 16:00:00';
+```
 
+**Output:**
+| MsgType | Symbol | SendingTime |
+|---------|--------|----------------------|
+| D | AAPL | 2023-12-15 10:30:00 |
+| 8 | AAPL | 2023-12-15 10:30:01 |
+| D | MSFT | 2023-12-15 10:31:00 |
+| 8 | MSFT | 2023-12-15 10:31:01 |
+
+```sql
 -- Extract hour
 SELECT HOUR(SendingTime) as hour, COUNT(*) as messages
 FROM read_fix('logs/trading.fix')
 GROUP BY hour
 ORDER BY hour;
+```
 
+**Output:**
+| hour | messages |
+|------|----------|
+| 10 | 6 |
+| 11 | 3 |
+| 14 | 5 |
+
+```sql
 -- Time-based aggregation
 SELECT 
     DATE_TRUNC('hour', SendingTime) as hour,
@@ -602,6 +952,13 @@ FROM read_fix('logs/trading.fix')
 WHERE MsgType = 'D'
 GROUP BY hour, Symbol;
 ```
+
+**Output:**
+| hour | Symbol | orders | total_qty |
+|----------------------|--------|--------|-----------|
+| 2023-12-15 10:00:00 | AAPL | 1 | 100.0 |
+| 2023-12-15 10:00:00 | MSFT | 1 | 50.0 |
+| 2023-12-15 11:00:00 | TSLA | 2 | 400.0 |
 
 ### Combining with Other Data Sources
 
@@ -619,7 +976,16 @@ FROM read_fix('logs/trading.fix') f
 JOIN read_csv('reference/securities.csv') r
     ON f.Symbol = r.symbol
 WHERE f.MsgType = 'D';
+```
 
+**Output:**
+| Symbol | OrderQty | Price | sector | market_cap |
+|--------|----------|--------|-----------|------------|
+| AAPL | 100.0 | 150.50 | Technology | 2.8T |
+| MSFT | 50.0 | 380.25 | Technology | 2.5T |
+| TSLA | 200.0 | 250.75 | Automotive | 800B |
+
+```sql
 -- Combine multiple data sources
 SELECT 
     'FIX' as source,
@@ -636,85 +1002,13 @@ SELECT
 FROM read_csv('logs/csv/*.csv');
 ```
 
----
-
-## Troubleshooting
-
-### Problem: Extension Not Loading
-
-```sql
--- Error: Catalog Error: Table Function with name "read_fix" does not exist!
-```
-
-**Solution:** Load the extension first:
-```sql
-INSTALL quackfix;
-LOAD quackfix;
-```
-
-### Problem: Dictionary Not Found
-
-```sql
--- Error: Failed to load FIX dictionary from 'dialects/FIX44.xml'
-```
-
-**Solution:** Check dictionary path or provide full path:
-```sql
-SELECT * FROM read_fix('logs/trading.fix', 
-    dictionary='/absolute/path/to/FIX44.xml');
-```
-
-### Problem: All Values NULL
-
-**Possible causes:**
-1. Wrong delimiter (SOH vs pipe)
-2. Invalid FIX format
-3. Empty file
-
-**Solution:** Check delimiter and inspect raw_message:
-```sql
--- Check raw messages
-SELECT raw_message, parse_error 
-FROM read_fix('logs/trading.fix') 
-LIMIT 5;
-
--- Try different delimiter
-SELECT * FROM read_fix('logs/trading.fix', delimiter='\x01');
-```
-
-### Problem: Groups Column Always NULL
-
-**Possible causes:**
-1. Message type not in dictionary
-2. No groups defined for that message type
-3. Group count tag not present in message
-
-**Solution:** Check dictionary and message content:
-```sql
--- Check if message type is in dictionary
-SELECT * FROM fix_message_fields('dialects/FIX44.xml')
-WHERE msgtype = 'YOUR_MSG_TYPE';
-
--- Check raw message for group tags
-SELECT MsgType, raw_message
-FROM read_fix('logs/trading.fix')
-WHERE MsgType = 'YOUR_MSG_TYPE';
-```
-
-### Problem: Performance Issues
-
-**Solution:** Apply optimization strategies:
-```sql
--- ✅ Select only needed columns
-SELECT MsgType, Symbol, Price FROM read_fix('logs/huge.fix');
-
--- ✅ Avoid groups when not needed
-SELECT MsgType, Symbol FROM read_fix('logs/huge.fix');
-
--- ✅ Use filters to reduce data volume
-SELECT * FROM read_fix('logs/*.fix')
-WHERE MsgType = 'D' AND Symbol = 'AAPL';
-```
+**Output:**
+| source | Symbol | OrderQty | Price |
+|--------|--------|----------|--------|
+| FIX | AAPL | 100.0 | 150.50 |
+| FIX | MSFT | 50.0 | 380.25 |
+| CSV | GOOGL | 75.0 | 140.20 |
+| CSV | AMZN | 125.0 | 178.50 |
 
 ---
 
@@ -757,4 +1051,4 @@ SUM(OrderQty), AVG(Price)
 For more information, see:
 - [README.md](README.md) - Quick start and examples
 - [testdata/README.md](testdata/README.md) - Test data documentation
-- [PHASES.md](PHASES.md) - Implementation details and status
+

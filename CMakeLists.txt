@@ -3,6 +3,10 @@ cmake_minimum_required(VERSION 3.5)
 # Set extension name here
 set(TARGET_NAME quackfix)
 
+# Require C++17 standard for structured bindings and other modern features
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # DuckDB's extension distribution supports vcpkg. As such, dependencies can be added in ./vcpkg.json and then
 # used in cmake with find_package. Feel free to remove or replace with other dependencies.
 # Note that it should also be removed from vcpkg.json to prevent needlessly installing it..
@@ -25,6 +29,9 @@ set(EXTENSION_SOURCES
     src/quackfix_extension.cpp
     src/dictionary/xml_loader.cpp
     src/parser/fix_tokenizer.cpp
+    src/parser/fix_type_conversions.cpp
+    src/parser/fix_group_parser.cpp
+    src/parser/fix_file_reader.cpp
     src/table_function/read_fix_function.cpp
     src/table_function/dictionary_functions.cpp
     third_party/tinyxml2/tinyxml2.cpp
