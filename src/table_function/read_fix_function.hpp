@@ -6,7 +6,7 @@
 namespace duckdb {
 
 struct ReadFixFunction {
-    static TableFunction GetFunction();
+	static TableFunction GetFunction();
 };
 
 } // namespace duckdb

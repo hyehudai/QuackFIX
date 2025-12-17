@@ -1,6 +1,6 @@
 # name: test/sql/read_fix.test
 # description: Test read_fix table function with typed columns
-# group: [quackfix]
+# group: [sql]
 
 require quackfix
 
