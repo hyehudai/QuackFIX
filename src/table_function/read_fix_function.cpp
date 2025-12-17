@@ -17,8 +17,6 @@
 #include "parser/fix_hot_tags.hpp"
 #include <sstream>
 
-using namespace duckdb::FixHotTags;
-
 namespace duckdb {
 
 // Bind data - configuration for the table function
@@ -132,7 +130,7 @@ static unique_ptr<FunctionData> ReadFixBind(ClientContext &context, TableFunctio
 	auto result = make_uniq<ReadFixBindData>();
 
 	// Get file path parameter
-	if (input.inputs.size() < 1) {
+	if (input.inputs.empty()) {
 		throw BinderException("read_fix requires at least one argument (file path)");
 	}
 
@@ -415,8 +413,9 @@ void FixColumnWriter::WriteHotTags(const ParsedFixMessage &parsed) {
 
 void FixColumnWriter::WriteTagsMap(const ParsedFixMessage &parsed) {
 	auto out_idx = GetOutputIdx(19);
-	if (out_idx == DConstants::INVALID_INDEX)
+	if (out_idx == DConstants::INVALID_INDEX) {
 		return;
+	}
 
 	if (!gstate.needs_tags || parsed.other_tags.empty()) {
 		output.data[out_idx].SetValue(row_idx, Value());
@@ -440,8 +439,9 @@ void FixColumnWriter::WriteTagsMap(const ParsedFixMessage &parsed) {
 
 void FixColumnWriter::WriteGroupsMap(const ParsedFixMessage &parsed) {
 	auto out_idx = GetOutputIdx(20);
-	if (out_idx == DConstants::INVALID_INDEX)
+	if (out_idx == DConstants::INVALID_INDEX) {
 		return;
+	}
 
 	Value groups_value = FixGroupParser::ParseGroups(parsed, *bind_data.dictionary, gstate.needs_groups);
 	output.data[out_idx].SetValue(row_idx, groups_value);
@@ -462,8 +462,9 @@ void FixColumnWriter::WriteMetadata(const string &raw_line) {
 		} else {
 			string combined_error;
 			for (size_t i = 0; i < conversion_errors.size(); i++) {
-				if (i > 0)
+				if (i > 0) {
 					combined_error += "; ";
+				}
 				combined_error += conversion_errors[i];
 			}
 			output.data[out_idx].SetValue(row_idx, Value(combined_error));
@@ -478,8 +479,9 @@ void FixColumnWriter::WriteCustomTags(const ParsedFixMessage &parsed) {
 		int tag_num = tag_pair.second;
 		auto out_idx = GetOutputIdx(23 + i);
 
-		if (out_idx == DConstants::INVALID_INDEX)
+		if (out_idx == DConstants::INVALID_INDEX) {
 			continue;
+		}
 
 		// Find value in hot tags first, then other_tags
 		const char *value_ptr = nullptr;
@@ -487,79 +489,79 @@ void FixColumnWriter::WriteCustomTags(const ParsedFixMessage &parsed) {
 
 		// Check if this is a hot tag - using centralized FixHotTags constants
 		switch (tag_num) {
-		case MSG_TYPE:
+		case duckdb::FixHotTags::MSG_TYPE:
 			value_ptr = parsed.msg_type;
 			value_len = parsed.msg_type_len;
 			break;
-		case SENDER_COMP_ID:
+		case duckdb::FixHotTags::SENDER_COMP_ID:
 			value_ptr = parsed.sender_comp_id;
 			value_len = parsed.sender_comp_id_len;
 			break;
-		case TARGET_COMP_ID:
+		case duckdb::FixHotTags::TARGET_COMP_ID:
 			value_ptr = parsed.target_comp_id;
 			value_len = parsed.target_comp_id_len;
 			break;
-		case MSG_SEQ_NUM:
+		case duckdb::FixHotTags::MSG_SEQ_NUM:
 			value_ptr = parsed.msg_seq_num;
 			value_len = parsed.msg_seq_num_len;
 			break;
-		case SENDING_TIME:
+		case duckdb::FixHotTags::SENDING_TIME:
 			value_ptr = parsed.sending_time;
 			value_len = parsed.sending_time_len;
 			break;
-		case CL_ORD_ID:
+		case duckdb::FixHotTags::CL_ORD_ID:
 			value_ptr = parsed.cl_ord_id;
 			value_len = parsed.cl_ord_id_len;
 			break;
-		case ORDER_ID:
+		case duckdb::FixHotTags::ORDER_ID:
 			value_ptr = parsed.order_id;
 			value_len = parsed.order_id_len;
 			break;
-		case EXEC_ID:
+		case duckdb::FixHotTags::EXEC_ID:
 			value_ptr = parsed.exec_id;
 			value_len = parsed.exec_id_len;
 			break;
-		case SYMBOL:
+		case duckdb::FixHotTags::SYMBOL:
 			value_ptr = parsed.symbol;
 			value_len = parsed.symbol_len;
 			break;
-		case SIDE:
+		case duckdb::FixHotTags::SIDE:
 			value_ptr = parsed.side;
 			value_len = parsed.side_len;
 			break;
-		case EXEC_TYPE:
+		case duckdb::FixHotTags::EXEC_TYPE:
 			value_ptr = parsed.exec_type;
 			value_len = parsed.exec_type_len;
 			break;
-		case ORD_STATUS:
+		case duckdb::FixHotTags::ORD_STATUS:
 			value_ptr = parsed.ord_status;
 			value_len = parsed.ord_status_len;
 			break;
-		case PRICE:
+		case duckdb::FixHotTags::PRICE:
 			value_ptr = parsed.price;
 			value_len = parsed.price_len;
 			break;
-		case ORDER_QTY:
+		case duckdb::FixHotTags::ORDER_QTY:
 			value_ptr = parsed.order_qty;
 			value_len = parsed.order_qty_len;
 			break;
-		case CUM_QTY:
+		case duckdb::FixHotTags::CUM_QTY:
 			value_ptr = parsed.cum_qty;
 			value_len = parsed.cum_qty_len;
 			break;
-		case LEAVES_QTY:
+		case duckdb::FixHotTags::LEAVES_QTY:
 			value_ptr = parsed.leaves_qty;
 			value_len = parsed.leaves_qty_len;
 			break;
-		case LAST_PX:
+		case duckdb::FixHotTags::LAST_PX:
 			value_ptr = parsed.last_px;
 			value_len = parsed.last_px_len;
 			break;
-		case LAST_QTY:
+		case duckdb::FixHotTags::LAST_QTY:
 			value_ptr = parsed.last_qty;
 			value_len = parsed.last_qty_len;
 			break;
-		case TEXT:
+		case duckdb::FixHotTags::TEXT:
 			value_ptr = parsed.text;
 			value_len = parsed.text_len;
 			break;

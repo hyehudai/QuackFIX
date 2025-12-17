@@ -32,7 +32,7 @@ static unique_ptr<FunctionData> FixFieldsBind(ClientContext &context, TableFunct
                                               vector<LogicalType> &return_types, vector<string> &names) {
 	auto result = make_uniq<FixFieldsBindData>();
 
-	if (input.inputs.size() < 1) {
+	if (input.inputs.empty()) {
 		throw BinderException("fix_fields requires a dictionary file path argument");
 	}
 
@@ -72,7 +72,7 @@ static unique_ptr<GlobalTableFunctionState> FixFieldsInitGlobal(ClientContext &c
 
 	// Copy fields to vector for iteration
 	for (const auto &[tag, field_def] : bind_data.dictionary->fields) {
-		result->field_list.push_back({tag, field_def});
+		result->field_list.emplace_back(tag, field_def);
 	}
 
 	// Sort by tag for consistent ordering
@@ -186,7 +186,7 @@ static unique_ptr<FunctionData> FixMessageFieldsBind(ClientContext &context, Tab
                                                      vector<LogicalType> &return_types, vector<string> &names) {
 	auto result = make_uniq<FixMessageFieldsBindData>();
 
-	if (input.inputs.size() < 1) {
+	if (input.inputs.empty()) {
 		throw BinderException("fix_message_fields requires a dictionary file path argument");
 	}
 
@@ -356,7 +356,7 @@ static unique_ptr<FunctionData> FixGroupsBind(ClientContext &context, TableFunct
                                               vector<LogicalType> &return_types, vector<string> &names) {
 	auto result = make_uniq<FixGroupsBindData>();
 
-	if (input.inputs.size() < 1) {
+	if (input.inputs.empty()) {
 		throw BinderException("fix_groups requires a dictionary file path argument");
 	}
 
