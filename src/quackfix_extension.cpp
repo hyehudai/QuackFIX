@@ -8,37 +8,9 @@
 #include "table_function/read_fix_function.hpp"
 #include "table_function/dictionary_functions.hpp"
 
-// OpenSSL linked through vcpkg
-#include <openssl/opensslv.h>
-
 namespace duckdb {
 
-inline void QuackfixScalarFun(DataChunk &args, ExpressionState &state, Vector &result) {
-	auto &name_vector = args.data[0];
-	UnaryExecutor::Execute<string_t, string_t>(name_vector, result, args.size(), [&](string_t name) {
-		return StringVector::AddString(result, "Quackfix " + name.GetString() + " 🐥");
-	});
-}
-
-inline void QuackfixOpenSSLVersionScalarFun(DataChunk &args, ExpressionState &state, Vector &result) {
-	auto &name_vector = args.data[0];
-	UnaryExecutor::Execute<string_t, string_t>(name_vector, result, args.size(), [&](string_t name) {
-		return StringVector::AddString(result, "Quackfix " + name.GetString() + ", my linked OpenSSL version is " +
-		                                           OPENSSL_VERSION_TEXT);
-	});
-}
-
 static void LoadInternal(ExtensionLoader &loader) {
-	// Register a scalar function
-	auto quackfix_scalar_function =
-	    ScalarFunction("quackfix", {LogicalType::VARCHAR}, LogicalType::VARCHAR, QuackfixScalarFun);
-	loader.RegisterFunction(quackfix_scalar_function);
-
-	// Register another scalar function
-	auto quackfix_openssl_version_scalar_function = ScalarFunction(
-	    "quackfix_openssl_version", {LogicalType::VARCHAR}, LogicalType::VARCHAR, QuackfixOpenSSLVersionScalarFun);
-	loader.RegisterFunction(quackfix_openssl_version_scalar_function);
-
 	// Register the read_fix table function
 	auto read_fix_function = ReadFixFunction::GetFunction();
 	loader.RegisterFunction(read_fix_function);
