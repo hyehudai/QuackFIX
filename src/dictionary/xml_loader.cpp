@@ -96,13 +96,15 @@ FixGroupDef FixDictionaryLoader::LoadGroup(FixDictionary &dict, tinyxml2::XMLEle
 	g.count_tag = count_tag;
 
 	// group fields
-	for (tinyxml2::XMLElement *f = group->FirstChildElement("field"); f != nullptr; f = f->NextSiblingElement("field")) {
+	for (tinyxml2::XMLElement *f = group->FirstChildElement("field"); f != nullptr;
+	     f = f->NextSiblingElement("field")) {
 		const char *fname = f->Attribute("name");
 		g.field_tags.push_back(dict.name_to_tag[fname]);
 	}
 
 	// nested groups
-	for (tinyxml2::XMLElement *sub = group->FirstChildElement("group"); sub != nullptr; sub = sub->NextSiblingElement("group")) {
+	for (tinyxml2::XMLElement *sub = group->FirstChildElement("group"); sub != nullptr;
+	     sub = sub->NextSiblingElement("group")) {
 		FixGroupDef sub_def = LoadGroup(dict, sub);
 		g.subgroups[sub_def.count_tag] = sub_def;
 	}
@@ -183,7 +185,8 @@ void FixDictionaryLoader::LoadMessages(FixDictionary &dict, tinyxml2::XMLElement
 		m.msg_type = msg->Attribute("msgtype");
 
 		// Iterate through all child elements in order
-		for (tinyxml2::XMLElement *child = msg->FirstChildElement(); child != nullptr; child = child->NextSiblingElement()) {
+		for (tinyxml2::XMLElement *child = msg->FirstChildElement(); child != nullptr;
+		     child = child->NextSiblingElement()) {
 			const char *child_name = child->Name();
 
 			if (strcmp(child_name, "field") == 0) {
