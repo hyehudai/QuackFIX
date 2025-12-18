@@ -48,19 +48,19 @@ static unique_ptr<FunctionData> FixFieldsBind(ClientContext &context, TableFunct
 
 	// Define schema
 	names.emplace_back("tag");
-	return_types.emplace_back(LogicalType::INTEGER);
+	return_types.emplace_back(LogicalType(LogicalTypeId::INTEGER));
 
 	names.emplace_back("name");
-	return_types.emplace_back(LogicalType::VARCHAR);
+	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
 
 	names.emplace_back("type");
-	return_types.emplace_back(LogicalType::VARCHAR);
+	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
 
 	names.emplace_back("enum_values");
 	// LIST<STRUCT(enum VARCHAR, description VARCHAR)>
 	child_list_t<LogicalType> struct_children;
-	struct_children.push_back(make_pair("enum", LogicalType::VARCHAR));
-	struct_children.push_back(make_pair("description", LogicalType::VARCHAR));
+	struct_children.push_back(make_pair("enum", LogicalType(LogicalTypeId::VARCHAR)));
+	struct_children.push_back(make_pair("description", LogicalType(LogicalTypeId::VARCHAR)));
 	return_types.emplace_back(LogicalType::LIST(LogicalType::STRUCT(struct_children)));
 
 	return std::move(result);
@@ -114,8 +114,8 @@ static void FixFieldsScan(ClientContext &context, TableFunctionInput &data_p, Da
 			}
 
 			child_list_t<LogicalType> struct_children;
-			struct_children.push_back(make_pair("enum", LogicalType::VARCHAR));
-			struct_children.push_back(make_pair("description", LogicalType::VARCHAR));
+			struct_children.push_back(make_pair("enum", LogicalType(LogicalTypeId::VARCHAR)));
+			struct_children.push_back(make_pair("description", LogicalType(LogicalTypeId::VARCHAR)));
 			auto struct_type = LogicalType::STRUCT(struct_children);
 
 			output.data[3].SetValue(output_idx, Value::LIST(struct_type, enum_list));
@@ -129,7 +129,7 @@ static void FixFieldsScan(ClientContext &context, TableFunctionInput &data_p, Da
 }
 
 TableFunction FixFieldsFunction::GetFunction() {
-	TableFunction func("fix_fields", {LogicalType::VARCHAR}, FixFieldsScan, FixFieldsBind, FixFieldsInitGlobal);
+	TableFunction func("fix_fields", {LogicalType(LogicalTypeId::VARCHAR)}, FixFieldsScan, FixFieldsBind, FixFieldsInitGlobal);
 	func.name = "fix_fields";
 	return func;
 }
@@ -202,25 +202,25 @@ static unique_ptr<FunctionData> FixMessageFieldsBind(ClientContext &context, Tab
 
 	// Define schema
 	names.emplace_back("msgtype");
-	return_types.emplace_back(LogicalType::VARCHAR);
+	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
 
 	names.emplace_back("name");
-	return_types.emplace_back(LogicalType::VARCHAR);
+	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
 
 	names.emplace_back("category");
-	return_types.emplace_back(LogicalType::VARCHAR);
+	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
 
 	names.emplace_back("tag");
-	return_types.emplace_back(LogicalType::INTEGER);
+	return_types.emplace_back(LogicalType(LogicalTypeId::INTEGER));
 
 	names.emplace_back("field_name");
-	return_types.emplace_back(LogicalType::VARCHAR);
+	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
 
 	names.emplace_back("required");
-	return_types.emplace_back(LogicalType::BOOLEAN);
+	return_types.emplace_back(LogicalType(LogicalTypeId::BOOLEAN));
 
 	names.emplace_back("group_id");
-	return_types.emplace_back(LogicalType::INTEGER);
+	return_types.emplace_back(LogicalType(LogicalTypeId::INTEGER));
 
 	return std::move(result);
 }
@@ -304,7 +304,7 @@ static void FixMessageFieldsScan(ClientContext &context, TableFunctionInput &dat
 }
 
 TableFunction FixMessageFieldsFunction::GetFunction() {
-	TableFunction func("fix_message_fields", {LogicalType::VARCHAR}, FixMessageFieldsScan, FixMessageFieldsBind,
+	TableFunction func("fix_message_fields", {LogicalType(LogicalTypeId::VARCHAR)}, FixMessageFieldsScan, FixMessageFieldsBind,
 	                   FixMessageFieldsInitGlobal);
 	func.name = "fix_message_fields";
 	return func;
@@ -372,16 +372,16 @@ static unique_ptr<FunctionData> FixGroupsBind(ClientContext &context, TableFunct
 
 	// Define schema
 	names.emplace_back("group_tag");
-	return_types.emplace_back(LogicalType::INTEGER);
+	return_types.emplace_back(LogicalType(LogicalTypeId::INTEGER));
 
 	names.emplace_back("field_tag");
-	return_types.emplace_back(LogicalType::LIST(LogicalType::INTEGER));
+	return_types.emplace_back(LogicalType::LIST(LogicalType(LogicalTypeId::INTEGER)));
 
 	names.emplace_back("message_types");
-	return_types.emplace_back(LogicalType::LIST(LogicalType::VARCHAR));
+	return_types.emplace_back(LogicalType::LIST(LogicalType(LogicalTypeId::VARCHAR)));
 
 	names.emplace_back("name");
-	return_types.emplace_back(LogicalType::VARCHAR);
+	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
 
 	return std::move(result);
 }
@@ -440,14 +440,14 @@ static void FixGroupsScan(ClientContext &context, TableFunctionInput &data_p, Da
 		for (int tag : entry.field_tags) {
 			field_tag_list.push_back(Value::INTEGER(tag));
 		}
-		output.data[1].SetValue(output_idx, Value::LIST(LogicalType::INTEGER, field_tag_list));
+		output.data[1].SetValue(output_idx, Value::LIST(LogicalType(LogicalTypeId::INTEGER), field_tag_list));
 
 		// Column 2: message_types (LIST<VARCHAR>)
 		vector<Value> msg_type_list;
 		for (const string &msgtype : entry.message_types) {
 			msg_type_list.push_back(Value(msgtype));
 		}
-		output.data[2].SetValue(output_idx, Value::LIST(LogicalType::VARCHAR, msg_type_list));
+		output.data[2].SetValue(output_idx, Value::LIST(LogicalType(LogicalTypeId::VARCHAR), msg_type_list));
 
 		// Column 3: name
 		output.data[3].SetValue(output_idx, Value(entry.name));
@@ -460,7 +460,7 @@ static void FixGroupsScan(ClientContext &context, TableFunctionInput &data_p, Da
 }
 
 TableFunction FixGroupsFunction::GetFunction() {
-	TableFunction func("fix_groups", {LogicalType::VARCHAR}, FixGroupsScan, FixGroupsBind, FixGroupsInitGlobal);
+	TableFunction func("fix_groups", {LogicalType(LogicalTypeId::VARCHAR)}, FixGroupsScan, FixGroupsBind, FixGroupsInitGlobal);
 	func.name = "fix_groups";
 	return func;
 }
