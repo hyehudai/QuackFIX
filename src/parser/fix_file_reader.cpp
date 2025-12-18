@@ -22,7 +22,7 @@ bool FixFileReader::OpenNextFile(FileSystem &fs, const vector<string> &files, id
 	file_index++;
 
 	// Open file using DuckDB FileSystem API (supports S3, HTTP, etc.)
-	file_handle_ = fs.OpenFile(current_file_, FileOpenFlags(FileOpenFlags::FILE_FLAGS_READ));
+	file_handle_ = fs.OpenFile(current_file_, FileFlags::FILE_FLAGS_READ);
 	line_number_ = 0;
 	file_done_ = false;
 	buffer_.clear();

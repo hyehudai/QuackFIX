@@ -240,61 +240,61 @@ static unique_ptr<FunctionData> ReadFixBind(ClientContext &context, TableFunctio
 
 	// Define full schema for Phase 4.5 - with proper types
 	names.emplace_back("MsgType");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("SenderCompID");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("TargetCompID");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("MsgSeqNum");
-	return_types.emplace_back(LogicalType(LogicalTypeId::BIGINT)); // Numeric
+	return_types.emplace_back(LogicalType::BIGINT); // Numeric
 
 	names.emplace_back("SendingTime");
-	return_types.emplace_back(LogicalType(LogicalTypeId::TIMESTAMP)); // Timestamp with milliseconds
+	return_types.emplace_back(LogicalType::TIMESTAMP); // Timestamp with milliseconds
 
 	names.emplace_back("ClOrdID");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("OrderID");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("ExecID");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("Symbol");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("Side");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("ExecType");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("OrdStatus");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("Price");
-	return_types.emplace_back(LogicalType(LogicalTypeId::DOUBLE)); // Numeric
+	return_types.emplace_back(LogicalType::DOUBLE); // Numeric
 
 	names.emplace_back("OrderQty");
-	return_types.emplace_back(LogicalType(LogicalTypeId::DOUBLE)); // Numeric
+	return_types.emplace_back(LogicalType::DOUBLE); // Numeric
 
 	names.emplace_back("CumQty");
-	return_types.emplace_back(LogicalType(LogicalTypeId::DOUBLE)); // Numeric
+	return_types.emplace_back(LogicalType::DOUBLE); // Numeric
 
 	names.emplace_back("LeavesQty");
-	return_types.emplace_back(LogicalType(LogicalTypeId::DOUBLE)); // Numeric
+	return_types.emplace_back(LogicalType::DOUBLE); // Numeric
 
 	names.emplace_back("LastPx");
-	return_types.emplace_back(LogicalType(LogicalTypeId::DOUBLE)); // Numeric
+	return_types.emplace_back(LogicalType::DOUBLE); // Numeric
 
 	names.emplace_back("LastQty");
-	return_types.emplace_back(LogicalType(LogicalTypeId::DOUBLE)); // Numeric
+	return_types.emplace_back(LogicalType::DOUBLE); // Numeric
 
 	names.emplace_back("Text");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	// Phase 5: Non-hot tags
 	names.emplace_back("tags");

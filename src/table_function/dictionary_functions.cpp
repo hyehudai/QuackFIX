@@ -48,13 +48,13 @@ static unique_ptr<FunctionData> FixFieldsBind(ClientContext &context, TableFunct
 
 	// Define schema
 	names.emplace_back("tag");
-	return_types.emplace_back(LogicalType(LogicalTypeId::INTEGER));
+	return_types.emplace_back(LogicalType::INTEGER);
 
 	names.emplace_back("name");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("type");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("enum_values");
 	// LIST<STRUCT(enum VARCHAR, description VARCHAR)>
@@ -202,25 +202,25 @@ static unique_ptr<FunctionData> FixMessageFieldsBind(ClientContext &context, Tab
 
 	// Define schema
 	names.emplace_back("msgtype");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("name");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("category");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("tag");
-	return_types.emplace_back(LogicalType(LogicalTypeId::INTEGER));
+	return_types.emplace_back(LogicalType::INTEGER);
 
 	names.emplace_back("field_name");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	names.emplace_back("required");
-	return_types.emplace_back(LogicalType(LogicalTypeId::BOOLEAN));
+	return_types.emplace_back(LogicalType::BOOLEAN);
 
 	names.emplace_back("group_id");
-	return_types.emplace_back(LogicalType(LogicalTypeId::INTEGER));
+	return_types.emplace_back(LogicalType::INTEGER);
 
 	return std::move(result);
 }
@@ -372,16 +372,16 @@ static unique_ptr<FunctionData> FixGroupsBind(ClientContext &context, TableFunct
 
 	// Define schema
 	names.emplace_back("group_tag");
-	return_types.emplace_back(LogicalType(LogicalTypeId::INTEGER));
+	return_types.emplace_back(LogicalType::INTEGER);
 
 	names.emplace_back("field_tag");
-	return_types.emplace_back(LogicalType::LIST(LogicalType(LogicalTypeId::INTEGER)));
+	return_types.emplace_back(LogicalType::LIST(LogicalType::INTEGER));
 
 	names.emplace_back("message_types");
-	return_types.emplace_back(LogicalType::LIST(LogicalType(LogicalTypeId::VARCHAR)));
+	return_types.emplace_back(LogicalType::LIST(LogicalType::VARCHAR));
 
 	names.emplace_back("name");
-	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	return_types.emplace_back(LogicalType::VARCHAR);
 
 	return std::move(result);
 }
