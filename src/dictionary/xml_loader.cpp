@@ -106,7 +106,7 @@ FixGroupDef FixDictionaryLoader::LoadGroup(FixDictionary &dict, tinyxml2::XMLEle
 	for (tinyxml2::XMLElement *sub = group->FirstChildElement("group"); sub != nullptr;
 	     sub = sub->NextSiblingElement("group")) {
 		FixGroupDef sub_def = LoadGroup(dict, sub);
-		g.subgroups[sub_def.count_tag] = sub_def;
+		g.subgroups[sub_def.count_tag] = std::make_shared<FixGroupDef>(sub_def);
 	}
 
 	return g;
@@ -134,7 +134,7 @@ void FixDictionaryLoader::LoadComponents(FixDictionary &dict, tinyxml2::XMLEleme
 		for (tinyxml2::XMLElement *group = comp->FirstChildElement("group"); group != nullptr;
 		     group = group->NextSiblingElement("group")) {
 			FixGroupDef g = LoadGroup(dict, group);
-			c.groups[g.count_tag] = g;
+			c.groups[g.count_tag] = std::make_shared<FixGroupDef>(g);
 		}
 
 		dict.components[c.name] = c;
@@ -203,7 +203,7 @@ void FixDictionaryLoader::LoadMessages(FixDictionary &dict, tinyxml2::XMLElement
 			} else if (strcmp(child_name, "group") == 0) {
 				// Direct group
 				FixGroupDef g = LoadGroup(dict, child);
-				m.groups[g.count_tag] = g;
+				m.groups[g.count_tag] = std::make_shared<FixGroupDef>(g);
 			} else if (strcmp(child_name, "component") == 0) {
 				// Component reference - expand it
 				ExpandComponent(dict, m, child);
