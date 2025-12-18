@@ -1,5 +1,7 @@
 # QuackFIX User Guide
 
+![Description](quackfixlogo2.png)
+
 Comprehensive documentation for the QuackFIX DuckDB extension.
 
 ---
