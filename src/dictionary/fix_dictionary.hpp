@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 // -------------------------------
 // ENUM DEFINITIONS
@@ -25,9 +26,9 @@ struct FixFieldDef {
 // GROUP DEFINITIONS (Repeating groups)
 // -------------------------------
 struct FixGroupDef {
-	int count_tag;                                  // e.g. 268 = NoMDEntries
-	std::vector<int> field_tags;                    // tags within group
-	std::unordered_map<int, FixGroupDef> subgroups; // nested groups
+	int count_tag;                                           // e.g. 268 = NoMDEntries
+	std::vector<int> field_tags;                             // tags within group
+	std::unordered_map<int, std::shared_ptr<FixGroupDef>> subgroups; // nested groups
 };
 
 // -------------------------------
@@ -40,7 +41,7 @@ struct FixMessageDef {
 	std::vector<int> required_fields;
 	std::vector<int> optional_fields;
 
-	std::unordered_map<int, FixGroupDef> groups;
+	std::unordered_map<int, std::shared_ptr<FixGroupDef>> groups;
 };
 
 // -------------------------------
@@ -49,7 +50,7 @@ struct FixMessageDef {
 struct FixComponentDef {
 	std::string name;
 	std::vector<int> field_tags;
-	std::unordered_map<int, FixGroupDef> groups;
+	std::unordered_map<int, std::shared_ptr<FixGroupDef>> groups;
 };
 
 // -------------------------------

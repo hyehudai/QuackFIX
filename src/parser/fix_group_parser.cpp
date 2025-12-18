@@ -124,8 +124,8 @@ Value FixGroupParser::ParseGroups(const ParsedFixMessage &parsed, const FixDicti
 			continue; // Group not present or invalid count
 		}
 
-		// Get field tags from dictionary
-		const std::vector<int> &group_field_tags = group_def.field_tags;
+		// Get field tags from dictionary (dereference shared_ptr)
+		const std::vector<int> &group_field_tags = group_def->field_tags;
 		if (group_field_tags.empty()) {
 			continue; // No fields defined for this group
 		}
