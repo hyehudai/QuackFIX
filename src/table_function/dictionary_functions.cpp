@@ -129,7 +129,8 @@ static void FixFieldsScan(ClientContext &context, TableFunctionInput &data_p, Da
 }
 
 TableFunction FixFieldsFunction::GetFunction() {
-	TableFunction func("fix_fields", {LogicalType(LogicalTypeId::VARCHAR)}, FixFieldsScan, FixFieldsBind, FixFieldsInitGlobal);
+	TableFunction func("fix_fields", {LogicalType(LogicalTypeId::VARCHAR)}, FixFieldsScan, FixFieldsBind,
+	                   FixFieldsInitGlobal);
 	func.name = "fix_fields";
 	return func;
 }
@@ -178,7 +179,7 @@ static void AddGroupFields(const FixGroupDef &group_def, const string &msgtype, 
 
 	// Recursively add nested groups
 	for (const auto &[sub_count_tag, sub_group] : group_def.subgroups) {
-		AddGroupFields(sub_group, msgtype, msg_name, sub_count_tag, dict, entries);
+		AddGroupFields(*sub_group, msgtype, msg_name, sub_count_tag, dict, entries);
 	}
 }
 
@@ -256,7 +257,7 @@ static unique_ptr<GlobalTableFunctionState> FixMessageFieldsInitGlobal(ClientCon
 
 		// Add group fields recursively
 		for (const auto &[count_tag, group_def] : msg_def.groups) {
-			AddGroupFields(group_def, msgtype, msg_def.name, count_tag, *bind_data.dictionary, result->entries);
+			AddGroupFields(*group_def, msgtype, msg_def.name, count_tag, *bind_data.dictionary, result->entries);
 		}
 	}
 
@@ -304,8 +305,8 @@ static void FixMessageFieldsScan(ClientContext &context, TableFunctionInput &dat
 }
 
 TableFunction FixMessageFieldsFunction::GetFunction() {
-	TableFunction func("fix_message_fields", {LogicalType(LogicalTypeId::VARCHAR)}, FixMessageFieldsScan, FixMessageFieldsBind,
-	                   FixMessageFieldsInitGlobal);
+	TableFunction func("fix_message_fields", {LogicalType(LogicalTypeId::VARCHAR)}, FixMessageFieldsScan,
+	                   FixMessageFieldsBind, FixMessageFieldsInitGlobal);
 	func.name = "fix_message_fields";
 	return func;
 }
@@ -348,7 +349,7 @@ static void CollectGroups(const FixGroupDef &group_def, int count_tag, const str
 
 	// Recursively collect nested groups
 	for (const auto &[sub_count_tag, sub_group] : group_def.subgroups) {
-		CollectGroups(sub_group, sub_count_tag, msgtype, group_map);
+		CollectGroups(*sub_group, sub_count_tag, msgtype, group_map);
 	}
 }
 
@@ -396,7 +397,7 @@ static unique_ptr<GlobalTableFunctionState> FixGroupsInitGlobal(ClientContext &c
 	// Iterate through all messages and collect groups
 	for (const auto &[msgtype, msg_def] : bind_data.dictionary->messages) {
 		for (const auto &[count_tag, group_def] : msg_def.groups) {
-			CollectGroups(group_def, count_tag, msgtype, group_map);
+			CollectGroups(*group_def, count_tag, msgtype, group_map);
 		}
 	}
 
@@ -460,7 +461,8 @@ static void FixGroupsScan(ClientContext &context, TableFunctionInput &data_p, Da
 }
 
 TableFunction FixGroupsFunction::GetFunction() {
-	TableFunction func("fix_groups", {LogicalType(LogicalTypeId::VARCHAR)}, FixGroupsScan, FixGroupsBind, FixGroupsInitGlobal);
+	TableFunction func("fix_groups", {LogicalType(LogicalTypeId::VARCHAR)}, FixGroupsScan, FixGroupsBind,
+	                   FixGroupsInitGlobal);
 	func.name = "fix_groups";
 	return func;
 }

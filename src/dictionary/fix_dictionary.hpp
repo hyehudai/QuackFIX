@@ -26,8 +26,8 @@ struct FixFieldDef {
 // GROUP DEFINITIONS (Repeating groups)
 // -------------------------------
 struct FixGroupDef {
-	int count_tag;                                           // e.g. 268 = NoMDEntries
-	std::vector<int> field_tags;                             // tags within group
+	int count_tag;                                                   // e.g. 268 = NoMDEntries
+	std::vector<int> field_tags;                                     // tags within group
 	std::unordered_map<int, std::shared_ptr<FixGroupDef>> subgroups; // nested groups
 };
 
