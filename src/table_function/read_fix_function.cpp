@@ -31,6 +31,9 @@ struct ReadFixBindData : public TableFunctionData {
 	// Phase 7.7: Delimiter parameter
 	char delimiter = '|'; // Default to pipe
 
+	// Prefix extraction parameter
+	bool extract_prefix = false; // Default to false
+
 	ReadFixBindData() {
 	}
 };
@@ -113,7 +116,10 @@ struct FixColumnWriter {
 	// Write metadata columns (raw_message, parse_error) - columns 21-22
 	void WriteMetadata(const string &raw_line);
 
-	// Write custom tag columns (columns 23+)
+	// Write prefix column (column 23, if extract_prefix enabled)
+	void WritePrefix(const ParsedFixMessage &parsed);
+
+	// Write custom tag columns (columns 23+ or 24+ if prefix enabled)
 	void WriteCustomTags(const ParsedFixMessage &parsed);
 };
 
@@ -176,6 +182,11 @@ static unique_ptr<FunctionData> ReadFixBind(ClientContext &context, TableFunctio
 		} else {
 			throw BinderException("delimiter must be a single character or '\\x01' for SOH");
 		}
+	}
+
+	// Parse prefix parameter
+	if (input.named_parameters.find("prefix") != input.named_parameters.end()) {
+		result->extract_prefix = BooleanValue::Get(input.named_parameters.at("prefix"));
 	}
 
 	// Phase 7.5: Process custom tag parameters (rtags and tagIds)
@@ -314,6 +325,12 @@ static unique_ptr<FunctionData> ReadFixBind(ClientContext &context, TableFunctio
 
 	names.emplace_back("parse_error");
 	return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+
+	// Add prefix column if extract_prefix is enabled
+	if (result->extract_prefix) {
+		names.emplace_back("prefix");
+		return_types.emplace_back(LogicalType(LogicalTypeId::VARCHAR));
+	}
 
 	// Phase 7.5: Add custom tag columns (after standard columns)
 	for (const auto &tag_pair : result->custom_tags) {
@@ -476,12 +493,25 @@ void FixColumnWriter::WriteMetadata(const string &raw_line) {
 	}
 }
 
+void FixColumnWriter::WritePrefix(const ParsedFixMessage &parsed) {
+	// prefix column (23, if extract_prefix enabled)
+	if (bind_data.extract_prefix) {
+		auto out_idx = GetOutputIdx(23);
+		if (out_idx != DConstants::INVALID_INDEX) {
+			SetStringField(output.data[out_idx], row_idx, parsed.prefix, parsed.prefix_len);
+		}
+	}
+}
+
 void FixColumnWriter::WriteCustomTags(const ParsedFixMessage &parsed) {
+	// Custom tags start after prefix column (if enabled)
+	idx_t custom_tag_start_idx = bind_data.extract_prefix ? 24 : 23;
+	
 	for (size_t i = 0; i < bind_data.custom_tags.size(); i++) {
 		const auto &tag_pair = bind_data.custom_tags[i];
 		const string &tag_name = tag_pair.first;
 		int tag_num = tag_pair.second;
-		auto out_idx = GetOutputIdx(23 + i);
+		auto out_idx = GetOutputIdx(custom_tag_start_idx + i);
 
 		if (out_idx == DConstants::INVALID_INDEX) {
 			continue;
@@ -623,7 +653,7 @@ static void ReadFixScan(ClientContext &context, TableFunctionInput &data_p, Data
 
 		// Parse FIX message
 		ParsedFixMessage parsed;
-		FixTokenizer::Parse(line.c_str(), line.size(), parsed, bind_data.delimiter);
+		FixTokenizer::Parse(line.c_str(), line.size(), parsed, bind_data.delimiter, bind_data.extract_prefix);
 
 		// Initialize error collection
 		vector<string> conversion_errors;
@@ -637,6 +667,7 @@ static void ReadFixScan(ClientContext &context, TableFunctionInput &data_p, Data
 		writer.WriteTagsMap(parsed);
 		writer.WriteGroupsMap(parsed);
 		writer.WriteMetadata(line);
+		writer.WritePrefix(parsed);
 		writer.WriteCustomTags(parsed);
 
 		output_idx++;
@@ -663,6 +694,9 @@ TableFunction ReadFixFunction::GetFunction() {
 
 	// Phase 7.8: Dictionary parameter
 	func.named_parameters["dictionary"] = LogicalType(LogicalTypeId::VARCHAR);
+
+	// Prefix extraction parameter
+	func.named_parameters["prefix"] = LogicalType(LogicalTypeId::BOOLEAN);
 
 	return func;
 }

@@ -126,7 +126,7 @@ bool FixTokenizer::ParseTag(const char *tag_str, size_t tag_len, const char *val
 	return true;
 }
 
-bool FixTokenizer::Parse(const char *input, size_t input_len, ParsedFixMessage &msg, char delimiter) {
+bool FixTokenizer::Parse(const char *input, size_t input_len, ParsedFixMessage &msg, char delimiter, bool extract_prefix) {
 	msg.clear();
 	msg.raw_message = input;
 	msg.raw_message_len = input_len;
@@ -136,7 +136,31 @@ bool FixTokenizer::Parse(const char *input, size_t input_len, ParsedFixMessage &
 		return false;
 	}
 
-	size_t pos = 0;
+	// Find where "8=" starts (beginning of actual FIX message)
+	size_t fix_start = 0;
+	bool found_fix_start = false;
+	
+	for (size_t i = 0; i < input_len - 1; i++) {
+		if (input[i] == '8' && input[i + 1] == '=') {
+			fix_start = i;
+			found_fix_start = true;
+			break;
+		}
+	}
+
+	if (!found_fix_start) {
+		msg.parse_error = "Could not find FIX message start (8=)";
+		return false;
+	}
+
+	// Extract prefix if requested and present
+	if (extract_prefix && fix_start > 0) {
+		msg.prefix = input;
+		msg.prefix_len = fix_start;
+	}
+
+	// Parse FIX message starting from "8="
+	size_t pos = fix_start;
 	size_t tag_count = 0;
 
 	while (pos < input_len) {

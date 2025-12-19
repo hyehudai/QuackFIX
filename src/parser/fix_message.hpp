@@ -52,6 +52,10 @@ struct ParsedFixMessage {
 	const char *text; // Tag 58
 	size_t text_len;
 
+	// Prefix (everything before "8=" in the line)
+	const char *prefix;
+	size_t prefix_len;
+
 	// All other tags (parsed on demand)
 	struct TagValue {
 		const char *data;
@@ -116,6 +120,8 @@ struct ParsedFixMessage {
 		last_qty_len = 0;
 		text = nullptr;
 		text_len = 0;
+		prefix = nullptr;
+		prefix_len = 0;
 		other_tags.clear();
 		all_tags_ordered.clear();
 		raw_message = nullptr;

@@ -8,6 +8,7 @@ require quackfix
 query III
 SELECT MsgType, Symbol, Side FROM read_fix('testdata/sample.fix') ORDER BY MsgType, Symbol;
 ----
+0	NULL	NULL
 8	AAPL	1
 8	MSFT	2
 8	TSLA	1
@@ -73,7 +74,7 @@ D	SENDER	TARGET
 query I
 SELECT COUNT(*) FROM read_fix('testdata/sample.fix') WHERE parse_error IS NULL;
 ----
-6
+7
 
 # Test numeric operations - SUM
 query R
@@ -115,7 +116,7 @@ SELECT HOUR(SendingTime) FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D
 query I
 SELECT COUNT(*) FROM read_fix('testdata/sample.fix') WHERE tags IS NOT NULL;
 ----
-6
+7
 
 # Test accessing a specific tag value (tag 21 = HandlInst in message 1)
 query I
@@ -133,7 +134,7 @@ SELECT tags[60] FROM read_fix('testdata/sample.fix') WHERE MsgType = 'D' LIMIT 1
 query I
 SELECT COUNT(*) FROM read_fix('testdata/sample.fix') WHERE groups IS NULL;
 ----
-4
+5
 
 # Test message with NoPartyIDs group (tag 453) - Message 5
 query IIII
@@ -205,3 +206,74 @@ query II
 SELECT MsgType, Symbol FROM read_fix('testdata/sample.fix', rtags=[]) WHERE MsgType = 'D' LIMIT 1;
 ----
 D	AAPL
+
+# Phase 7.9: Test prefix extraction feature
+
+# Test prefix=false (default) - no prefix column in output
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix', prefix=false);
+----
+7
+
+# Test prefix=true adds prefix column
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix', prefix=true);
+----
+7
+
+# Test extracting prefix value from message with prefix
+query ITT
+SELECT MsgType, SenderCompID, prefix FROM read_fix('testdata/sample.fix', prefix=true) WHERE prefix IS NOT NULL;
+----
+0	TRADER	[OUT] 20240218-09:00:02.004 
+
+# Test NULL prefix for messages without prefix
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix', prefix=true) WHERE prefix IS NULL;
+----
+6
+
+# Test counting messages with prefix
+query I
+SELECT COUNT(*) FROM read_fix('testdata/sample.fix', prefix=true) WHERE prefix IS NOT NULL;
+----
+1
+
+# Test filtering by prefix content
+query IT
+SELECT MsgType, prefix FROM read_fix('testdata/sample.fix', prefix=true) WHERE prefix LIKE '[OUT]%';
+----
+0	[OUT] 20240218-09:00:02.004 
+
+# Test prefix with regular columns
+query IITT
+SELECT MsgType, SenderCompID, TargetCompID, prefix FROM read_fix('testdata/sample.fix', prefix=true) WHERE MsgType = '0';
+----
+0	TRADER	EUREX	[OUT] 20240218-09:00:02.004 
+
+# Test prefix length
+query I
+SELECT LENGTH(prefix) FROM read_fix('testdata/sample.fix', prefix=true) WHERE prefix IS NOT NULL;
+----
+28
+
+# Test prefix with custom tags (rtags)
+query ITT
+SELECT MsgType, prefix, TransactTime FROM read_fix('testdata/sample.fix', prefix=true, rtags=['TransactTime']) WHERE MsgType = 'D' LIMIT 1;
+----
+D	NULL	20231215-10:30:00
+
+# Test that messages without prefix still parse correctly with prefix=true
+query III
+SELECT MsgType, Symbol, Side FROM read_fix('testdata/sample.fix', prefix=true) WHERE MsgType = '8' ORDER BY Symbol;
+----
+8	AAPL	1
+8	MSFT	2
+8	TSLA	1
+
+# Test prefix doesn't affect other columns
+query IIRR
+SELECT MsgType, Symbol, OrderQty, Price FROM read_fix('testdata/sample.fix', prefix=true) WHERE MsgType = 'D' ORDER BY Symbol;
+----
+D	AAPL	100.0	150.5
+D	MSFT	50.0	380.25

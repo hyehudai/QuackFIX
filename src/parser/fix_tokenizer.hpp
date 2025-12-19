@@ -9,8 +9,9 @@ class FixTokenizer {
 public:
 	// Parse a FIX message from a buffer
 	// Supports both SOH ('\x01') and pipe ('|') delimiters
+	// extract_prefix: if true, extracts everything before "8=" into msg.prefix
 	// Returns true on success, false on parse error (error stored in msg)
-	static bool Parse(const char *input, size_t input_len, ParsedFixMessage &msg, char delimiter = '\x01');
+	static bool Parse(const char *input, size_t input_len, ParsedFixMessage &msg, char delimiter = '\x01', bool extract_prefix = false);
 
 private:
 	// Parse a single tag=value pair
