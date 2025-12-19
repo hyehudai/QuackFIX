@@ -160,7 +160,7 @@ LOAD httpfs;
 query I
 SELECT COUNT(*) FROM read_fix('https://raw.githubusercontent.com/hyehudai/QuackFIX/refs/heads/main/testdata/sample.fix');
 ----
-6
+7
 
 # Test HTTP with filtering
 query I
