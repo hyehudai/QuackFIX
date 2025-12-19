@@ -155,7 +155,7 @@ static unique_ptr<FunctionData> ReadFixBind(ClientContext &context, TableFunctio
 	// Load FIX dictionary for group parsing and custom tag validation
 	try {
 		FixDictionary dict;
-		
+
 		if (input.named_parameters.find("dictionary") != input.named_parameters.end()) {
 			// User provided a dictionary path - load from file
 			string dict_path = StringValue::Get(input.named_parameters.at("dictionary"));
@@ -164,7 +164,7 @@ static unique_ptr<FunctionData> ReadFixBind(ClientContext &context, TableFunctio
 			// No dictionary provided - use embedded FIX 4.4 dictionary
 			dict = FixDictionaryLoader::LoadFromString(EMBEDDED_FIX44_DICTIONARY);
 		}
-		
+
 		result->dictionary = make_shared_ptr<FixDictionary>(std::move(dict));
 	} catch (const std::exception &e) {
 		throw BinderException("Failed to load FIX dictionary: %s", e.what());
@@ -506,7 +506,7 @@ void FixColumnWriter::WritePrefix(const ParsedFixMessage &parsed) {
 void FixColumnWriter::WriteCustomTags(const ParsedFixMessage &parsed) {
 	// Custom tags start after prefix column (if enabled)
 	idx_t custom_tag_start_idx = bind_data.extract_prefix ? 24 : 23;
-	
+
 	for (size_t i = 0; i < bind_data.custom_tags.size(); i++) {
 		const auto &tag_pair = bind_data.custom_tags[i];
 		const string &tag_name = tag_pair.first;

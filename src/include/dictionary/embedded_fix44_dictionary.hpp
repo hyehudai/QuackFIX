@@ -6,7 +6,7 @@
 // This allows the extension to work without requiring external dictionary files
 namespace duckdb {
 
-constexpr const char* EMBEDDED_FIX44_DICTIONARY = R"(
+constexpr const char *EMBEDDED_FIX44_DICTIONARY = R"(
 <fix type='FIX' major='4' minor='4' servicepack='0'>
  <header>
   <field name='BeginString' required='Y' />
