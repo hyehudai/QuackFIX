@@ -224,9 +224,53 @@ SELECT * FROM read_fix('logs/trading.fix',
 | D | AAPL | 20231215-10:30:00 | CS |
 | 8 | AAPL | NULL | CS |
 
+#### prefix (optional)
+**Type:** `BOOLEAN`  
+**Default:** `false`  
+**Description:** Extract and return the message prefix (content before the first FIX tag). Some FIX implementations prepend custom data or routing information before the standard FIX message begins. When enabled, adds a `prefix` column to the output.
+
+**Examples:**
+```sql
+-- Default behavior: prefix not extracted
+SELECT MsgType, Symbol, raw_message 
+FROM read_fix('logs/trading.fix');
+```
+
+**Output:**
+| MsgType | Symbol | raw_message |
+|---------|--------|-------------|
+| D | AAPL | 8=FIX.4.4\|9=178\|35=D\|... |
+| 8 | AAPL | 8=FIX.4.4\|9=195\|35=8\|... |
+
+```sql
+-- Extract prefix: adds prefix column
+SELECT MsgType, Symbol, prefix, raw_message 
+FROM read_fix('logs/trading.fix', prefix=true);
+```
+
+**Output:**
+| MsgType | Symbol | prefix | raw_message |
+|---------|--------|--------|-------------|
+| D | AAPL | NULL | 8=FIX.4.4\|9=178\|35=D\|... |
+| 8 | AAPL | NULL | 8=FIX.4.4\|9=195\|35=8\|... |
+
+```sql
+-- Messages with routing prefix
+SELECT MsgType, Symbol, prefix 
+FROM read_fix('logs/exchange.fix', prefix=true)
+WHERE prefix IS NOT NULL;
+```
+
+**Output:**
+| MsgType | Symbol | prefix |
+|---------|--------|-------------|
+| D | AAPL | ROUTE:NYC-01: |
+| 8 | AAPL | ROUTE:NYC-01: |
+| D | MSFT | ROUTE:CHI-03: |
+
 ### Output Schema
 
-The `read_fix()` function returns **25 columns** (plus any custom tag columns):
+The `read_fix()` function returns **23-24 columns** (depending on the `prefix` parameter) plus any custom tag columns:
 
 #### Hot Tag Columns (19 fields)
 
@@ -254,7 +298,7 @@ These are the most commonly used FIX fields, parsed from every message:
 | `LastQty` | DOUBLE | 32 | Last execution quantity |
 | `Text` | VARCHAR | 58 | Free-form text |
 
-#### Special Columns (6 fields)
+#### Special Columns (4-5 fields)
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -262,6 +306,7 @@ These are the most commonly used FIX fields, parsed from every message:
 | `groups` | MAP(INTEGER, LIST(MAP(INTEGER, VARCHAR))) | Repeating groups (nested structure) |
 | `raw_message` | VARCHAR | Original FIX message |
 | `parse_error` | VARCHAR | Parse/conversion errors (NULL if OK) |
+| `prefix` | VARCHAR | Message prefix (only when prefix=true, NULL if no prefix) |
 | *Custom tags* | VARCHAR | Columns added via rtags/tagIds parameters |
 
 #### Column Type Notes
@@ -1053,4 +1098,3 @@ SUM(OrderQty), AVG(Price)
 For more information, see:
 - [README.md](README.md) - Quick start and examples
 - [testdata/README.md](testdata/README.md) - Test data documentation
-
