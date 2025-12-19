@@ -162,7 +162,7 @@ static unique_ptr<FunctionData> ReadFixBind(ClientContext &context, TableFunctio
 			dict = FixDictionaryLoader::LoadBase(context, dict_path);
 		} else {
 			// No dictionary provided - use embedded FIX 4.4 dictionary
-			dict = FixDictionaryLoader::LoadFromString(EMBEDDED_FIX44_DICTIONARY);
+			dict = FixDictionaryLoader::LoadFromString(duckdb::GetEmbeddedFix44Dictionary());
 		}
 
 		result->dictionary = make_shared_ptr<FixDictionary>(std::move(dict));

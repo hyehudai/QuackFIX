@@ -29,6 +29,20 @@ include_directories(src)
 # Add tinyxml2 directory to includes
 include_directories(third_party/tinyxml2)
 
+# Generate embedded FIX dictionary at build time
+set(EMBEDDED_DICT_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/data/fix44_dictionary.xml")
+set(EMBEDDED_DICT_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/embedded_fix44_dictionary.cpp")
+set(EMBEDDED_DICT_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_embedded_dictionary.py")
+
+add_custom_command(
+    OUTPUT ${EMBEDDED_DICT_OUTPUT}
+    COMMAND ${CMAKE_COMMAND} -E echo "Generating embedded FIX dictionary..."
+    COMMAND python3 ${EMBEDDED_DICT_SCRIPT} ${EMBEDDED_DICT_INPUT} ${EMBEDDED_DICT_OUTPUT}
+    DEPENDS ${EMBEDDED_DICT_INPUT} ${EMBEDDED_DICT_SCRIPT}
+    COMMENT "Generating embedded FIX 4.4 dictionary from XML"
+    VERBATIM
+)
+
 set(EXTENSION_SOURCES 
     src/quackfix_extension.cpp
     src/dictionary/xml_loader.cpp
@@ -39,6 +53,7 @@ set(EXTENSION_SOURCES
     src/table_function/read_fix_function.cpp
     src/table_function/dictionary_functions.cpp
     third_party/tinyxml2/tinyxml2.cpp
+    ${EMBEDDED_DICT_OUTPUT}
 )
 
 build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
