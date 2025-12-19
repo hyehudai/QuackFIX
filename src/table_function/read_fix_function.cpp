@@ -9,6 +9,7 @@
 #include "duckdb/function/table/read_csv.hpp"
 #include "dictionary/fix_dictionary.hpp"
 #include "dictionary/xml_loader.hpp"
+#include "dictionary/embedded_fix44_dictionary.hpp"
 #include "parser/fix_tokenizer.hpp"
 #include "parser/fix_message.hpp"
 #include "parser/fix_type_conversions.hpp"
@@ -145,19 +146,22 @@ static unique_ptr<FunctionData> ReadFixBind(ClientContext &context, TableFunctio
 		result->files.push_back(file_info.path);
 	}
 
-	// Phase 7.8: Parse dictionary parameter (default: dialects/FIX44.xml)
-	string dict_path = "dialects/FIX44.xml";
-	if (input.named_parameters.find("dictionary") != input.named_parameters.end()) {
-		dict_path = StringValue::Get(input.named_parameters.at("dictionary"));
-	}
-
 	// Load FIX dictionary for group parsing and custom tag validation
-	// Phase 7.8: Use FileSystem API to support S3, HTTP, etc.
 	try {
-		auto dict = FixDictionaryLoader::LoadBase(context, dict_path);
+		FixDictionary dict;
+		
+		if (input.named_parameters.find("dictionary") != input.named_parameters.end()) {
+			// User provided a dictionary path - load from file
+			string dict_path = StringValue::Get(input.named_parameters.at("dictionary"));
+			dict = FixDictionaryLoader::LoadBase(context, dict_path);
+		} else {
+			// No dictionary provided - use embedded FIX 4.4 dictionary
+			dict = FixDictionaryLoader::LoadFromString(EMBEDDED_FIX44_DICTIONARY);
+		}
+		
 		result->dictionary = make_shared_ptr<FixDictionary>(std::move(dict));
 	} catch (const std::exception &e) {
-		throw BinderException("Failed to load FIX dictionary from '%s': %s", dict_path.c_str(), e.what());
+		throw BinderException("Failed to load FIX dictionary: %s", e.what());
 	}
 
 	// Phase 7.7: Parse delimiter parameter

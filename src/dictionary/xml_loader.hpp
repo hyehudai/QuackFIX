@@ -13,6 +13,7 @@ class FixDictionaryLoader {
 public:
 	// Phase 7.8: Updated to support DuckDB FileSystem (S3, HTTP, etc.)
 	static FixDictionary LoadBase(duckdb::ClientContext &context, const std::string &path);
+	static FixDictionary LoadFromString(const std::string &xml_content);
 	static void ApplyOverlay(duckdb::ClientContext &context, FixDictionary &dict, const std::string &path);
 
 private:
