@@ -135,7 +135,7 @@ static void FixFieldsScan(ClientContext &context, TableFunctionInput &data_p, Da
 TableFunction FixFieldsFunction::GetFunction() {
 	// Create function with no required arguments (dictionary path is optional)
 	vector<LogicalType> arguments;
-	
+
 	TableFunction func("fix_fields", arguments, FixFieldsScan, FixFieldsBind, FixFieldsInitGlobal);
 	func.name = "fix_fields";
 	// Accept 0 or 1 VARCHAR argument for dictionary path
@@ -318,7 +318,7 @@ static void FixMessageFieldsScan(ClientContext &context, TableFunctionInput &dat
 TableFunction FixMessageFieldsFunction::GetFunction() {
 	// Create function with no required arguments (dictionary path is optional)
 	vector<LogicalType> arguments;
-	
+
 	TableFunction func("fix_message_fields", arguments, FixMessageFieldsScan, FixMessageFieldsBind,
 	                   FixMessageFieldsInitGlobal);
 	func.name = "fix_message_fields";
@@ -482,7 +482,7 @@ static void FixGroupsScan(ClientContext &context, TableFunctionInput &data_p, Da
 TableFunction FixGroupsFunction::GetFunction() {
 	// Create function with no required arguments (dictionary path is optional)
 	vector<LogicalType> arguments;
-	
+
 	TableFunction func("fix_groups", arguments, FixGroupsScan, FixGroupsBind, FixGroupsInitGlobal);
 	func.name = "fix_groups";
 	// Accept 0 or 1 VARCHAR argument for dictionary path
