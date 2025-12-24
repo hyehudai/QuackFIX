@@ -69,7 +69,7 @@ FROM fix_groups()
 WHERE group_tag = 78
 LIMIT 1;
 ----
-78	5	9
+78	24	9
 
 # Verify specific group details
 query II

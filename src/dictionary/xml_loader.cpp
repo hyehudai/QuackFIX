@@ -208,8 +208,13 @@ void FixDictionaryLoader::ExpandComponent(FixDictionary &dict, FixMessageDef &ms
 		}
 	}
 
-	// Add component's groups to message
-	for (const auto &[count_tag, group_def] : comp.groups) {
+	// Add component's groups to message with deterministic ordering
+	// Sort groups by count_tag before adding to ensure consistent behavior across architectures
+	std::vector<std::pair<int, std::shared_ptr<FixGroupDef>>> sorted_groups(comp.groups.begin(), comp.groups.end());
+	std::sort(sorted_groups.begin(), sorted_groups.end(),
+	          [](const auto &a, const auto &b) { return a.first < b.first; });
+	
+	for (const auto &[count_tag, group_def] : sorted_groups) {
 		msg.groups[count_tag] = group_def;
 	}
 }

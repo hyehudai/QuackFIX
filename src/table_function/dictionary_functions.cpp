@@ -360,7 +360,21 @@ static void CollectGroups(const FixGroupDef &group_def, int count_tag, const str
 	// Add this group
 	auto &entry = group_map[count_tag];
 	entry.group_tag = count_tag;
-	entry.field_tags = group_def.field_tags;
+	
+	// Merge field_tags using a set to deduplicate (fixes non-deterministic bug)
+	std::unordered_set<int> field_set;
+	// Add existing field_tags
+	for (int tag : entry.field_tags) {
+		field_set.insert(tag);
+	}
+	// Add new field_tags from this group definition
+	for (int tag : group_def.field_tags) {
+		field_set.insert(tag);
+	}
+	// Convert back to vector and sort for consistent order
+	entry.field_tags.assign(field_set.begin(), field_set.end());
+	std::sort(entry.field_tags.begin(), entry.field_tags.end());
+	
 	entry.message_types.push_back(msgtype);
 
 	// Recursively collect nested groups
