@@ -4,6 +4,7 @@
 #include "duckdb/common/file_system.hpp"
 #include "dictionary/fix_dictionary.hpp"
 #include "dictionary/xml_loader.hpp"
+#include "dictionary/embedded_fix44_dictionary.hpp"
 #include <unordered_set>
 
 namespace duckdb {
@@ -32,18 +33,21 @@ static unique_ptr<FunctionData> FixFieldsBind(ClientContext &context, TableFunct
                                               vector<LogicalType> &return_types, vector<string> &names) {
 	auto result = make_uniq<FixFieldsBindData>();
 
-	if (input.inputs.empty()) {
-		throw BinderException("fix_fields requires a dictionary file path argument");
-	}
-
-	auto &dict_path = StringValue::Get(input.inputs[0]);
-
-	// Load FIX dictionary
+	// Load FIX dictionary - use embedded by default, or custom path if provided
 	try {
-		auto dict = FixDictionaryLoader::LoadBase(context, dict_path);
+		FixDictionary dict;
+		if (input.inputs.empty()) {
+			// Use embedded FIX 4.4 dictionary
+			auto xml_content = GetEmbeddedFix44Dictionary();
+			dict = FixDictionaryLoader::LoadFromString(xml_content);
+		} else {
+			// Use provided dictionary file path
+			auto &dict_path = StringValue::Get(input.inputs[0]);
+			dict = FixDictionaryLoader::LoadBase(context, dict_path);
+		}
 		result->dictionary = make_shared_ptr<FixDictionary>(std::move(dict));
 	} catch (const std::exception &e) {
-		throw BinderException("Failed to load FIX dictionary from '%s': %s", dict_path.c_str(), e.what());
+		throw BinderException("Failed to load FIX dictionary: %s", e.what());
 	}
 
 	// Define schema
@@ -129,9 +133,13 @@ static void FixFieldsScan(ClientContext &context, TableFunctionInput &data_p, Da
 }
 
 TableFunction FixFieldsFunction::GetFunction() {
-	TableFunction func("fix_fields", {LogicalType(LogicalTypeId::VARCHAR)}, FixFieldsScan, FixFieldsBind,
-	                   FixFieldsInitGlobal);
+	// Create function with no required arguments (dictionary path is optional)
+	vector<LogicalType> arguments;
+	
+	TableFunction func("fix_fields", arguments, FixFieldsScan, FixFieldsBind, FixFieldsInitGlobal);
 	func.name = "fix_fields";
+	// Accept 0 or 1 VARCHAR argument for dictionary path
+	func.varargs = LogicalType(LogicalTypeId::VARCHAR);
 	return func;
 }
 
@@ -187,18 +195,21 @@ static unique_ptr<FunctionData> FixMessageFieldsBind(ClientContext &context, Tab
                                                      vector<LogicalType> &return_types, vector<string> &names) {
 	auto result = make_uniq<FixMessageFieldsBindData>();
 
-	if (input.inputs.empty()) {
-		throw BinderException("fix_message_fields requires a dictionary file path argument");
-	}
-
-	auto &dict_path = StringValue::Get(input.inputs[0]);
-
-	// Load FIX dictionary
+	// Load FIX dictionary - use embedded by default, or custom path if provided
 	try {
-		auto dict = FixDictionaryLoader::LoadBase(context, dict_path);
+		FixDictionary dict;
+		if (input.inputs.empty()) {
+			// Use embedded FIX 4.4 dictionary
+			auto xml_content = GetEmbeddedFix44Dictionary();
+			dict = FixDictionaryLoader::LoadFromString(xml_content);
+		} else {
+			// Use provided dictionary file path
+			auto &dict_path = StringValue::Get(input.inputs[0]);
+			dict = FixDictionaryLoader::LoadBase(context, dict_path);
+		}
 		result->dictionary = make_shared_ptr<FixDictionary>(std::move(dict));
 	} catch (const std::exception &e) {
-		throw BinderException("Failed to load FIX dictionary from '%s': %s", dict_path.c_str(), e.what());
+		throw BinderException("Failed to load FIX dictionary: %s", e.what());
 	}
 
 	// Define schema
@@ -305,9 +316,14 @@ static void FixMessageFieldsScan(ClientContext &context, TableFunctionInput &dat
 }
 
 TableFunction FixMessageFieldsFunction::GetFunction() {
-	TableFunction func("fix_message_fields", {LogicalType(LogicalTypeId::VARCHAR)}, FixMessageFieldsScan,
-	                   FixMessageFieldsBind, FixMessageFieldsInitGlobal);
+	// Create function with no required arguments (dictionary path is optional)
+	vector<LogicalType> arguments;
+	
+	TableFunction func("fix_message_fields", arguments, FixMessageFieldsScan, FixMessageFieldsBind,
+	                   FixMessageFieldsInitGlobal);
 	func.name = "fix_message_fields";
+	// Accept 0 or 1 VARCHAR argument for dictionary path
+	func.varargs = LogicalType(LogicalTypeId::VARCHAR);
 	return func;
 }
 
@@ -357,18 +373,21 @@ static unique_ptr<FunctionData> FixGroupsBind(ClientContext &context, TableFunct
                                               vector<LogicalType> &return_types, vector<string> &names) {
 	auto result = make_uniq<FixGroupsBindData>();
 
-	if (input.inputs.empty()) {
-		throw BinderException("fix_groups requires a dictionary file path argument");
-	}
-
-	auto &dict_path = StringValue::Get(input.inputs[0]);
-
-	// Load FIX dictionary
+	// Load FIX dictionary - use embedded by default, or custom path if provided
 	try {
-		auto dict = FixDictionaryLoader::LoadBase(context, dict_path);
+		FixDictionary dict;
+		if (input.inputs.empty()) {
+			// Use embedded FIX 4.4 dictionary
+			auto xml_content = GetEmbeddedFix44Dictionary();
+			dict = FixDictionaryLoader::LoadFromString(xml_content);
+		} else {
+			// Use provided dictionary file path
+			auto &dict_path = StringValue::Get(input.inputs[0]);
+			dict = FixDictionaryLoader::LoadBase(context, dict_path);
+		}
 		result->dictionary = make_shared_ptr<FixDictionary>(std::move(dict));
 	} catch (const std::exception &e) {
-		throw BinderException("Failed to load FIX dictionary from '%s': %s", dict_path.c_str(), e.what());
+		throw BinderException("Failed to load FIX dictionary: %s", e.what());
 	}
 
 	// Define schema
@@ -461,9 +480,13 @@ static void FixGroupsScan(ClientContext &context, TableFunctionInput &data_p, Da
 }
 
 TableFunction FixGroupsFunction::GetFunction() {
-	TableFunction func("fix_groups", {LogicalType(LogicalTypeId::VARCHAR)}, FixGroupsScan, FixGroupsBind,
-	                   FixGroupsInitGlobal);
+	// Create function with no required arguments (dictionary path is optional)
+	vector<LogicalType> arguments;
+	
+	TableFunction func("fix_groups", arguments, FixGroupsScan, FixGroupsBind, FixGroupsInitGlobal);
 	func.name = "fix_groups";
+	// Accept 0 or 1 VARCHAR argument for dictionary path
+	func.varargs = LogicalType(LogicalTypeId::VARCHAR);
 	return func;
 }
 
