@@ -5,5 +5,127 @@
 # Require statement will ensure this test is run with this extension loaded
 require quackfix
 
-# TODO: Add tests for actual QuackFIX functionality
-# Test read_fix, fix_fields, fix_message_fields, fix_groups functions
+# Test embedded dictionary functionality
+# These functions should work without requiring a dictionary file path
+
+# Test fix_fields() with embedded dictionary
+query I
+SELECT COUNT(*) FROM fix_fields();
+----
+912
+
+# Test fix_fields() returns expected structure
+query IIII
+SELECT tag, name, type, enum_values IS NOT NULL as has_enums 
+FROM fix_fields() 
+WHERE tag = 35 
+LIMIT 1;
+----
+35	MsgType	STRING	true
+
+# Test fix_fields() with a specific field that has enums
+query II
+SELECT tag, len(enum_values) as enum_count
+FROM fix_fields()
+WHERE tag = 35;
+----
+35	93
+
+# Test fix_message_fields() with embedded dictionary
+query I
+SELECT COUNT(*) FROM fix_message_fields();
+----
+5358
+
+# Test fix_message_fields() returns expected structure
+query IIII
+SELECT COUNT(*) as field_count,
+       COUNT(DISTINCT msgtype) as msg_count,
+       COUNT(CASE WHEN required THEN 1 END) as required_count,
+       COUNT(CASE WHEN category = 'group' THEN 1 END) as group_count
+FROM fix_message_fields();
+----
+5358	92	1467	921
+
+# Test fix_message_fields() for a specific message type
+query IIIII
+SELECT msgtype, name, tag, field_name, required
+FROM fix_message_fields()
+WHERE msgtype = 'D' AND tag = 11
+LIMIT 1;
+----
+D	NewOrderSingle	11	ClOrdID	true
+
+# Test fix_groups() with embedded dictionary
+query I
+SELECT COUNT(*) FROM fix_groups();
+----
+39
+
+# Test fix_groups() returns expected structure
+query III
+SELECT group_tag, len(field_tag) as field_count, len(message_types) as msg_count
+FROM fix_groups()
+WHERE group_tag = 78
+LIMIT 1;
+----
+78	5	9
+
+# Verify specific group details
+query II
+SELECT group_tag, name
+FROM fix_groups()
+WHERE group_tag = 78;
+----
+78	NoAllocs
+
+# Test that functions still work with explicit dictionary path
+query I
+SELECT COUNT(*) FROM fix_fields('data/fix44_dictionary.xml');
+----
+912
+
+query I
+SELECT COUNT(*) FROM fix_message_fields('data/fix44_dictionary.xml');
+----
+5358
+
+query I
+SELECT COUNT(*) FROM fix_groups('data/fix44_dictionary.xml');
+----
+39
+
+# Test that embedded dictionary has the same data as the file
+query I
+SELECT COUNT(*) FROM (
+    SELECT tag FROM fix_fields()
+    EXCEPT
+    SELECT tag FROM fix_fields('data/fix44_dictionary.xml')
+);
+----
+0
+
+# Test field lookup by name - verify embedded dictionary is complete
+query II
+SELECT tag, type
+FROM fix_fields()
+WHERE name = 'Symbol'
+LIMIT 1;
+----
+55	STRING
+
+query II
+SELECT tag, type
+FROM fix_fields()
+WHERE name = 'Side'
+LIMIT 1;
+----
+54	CHAR
+
+query II
+SELECT tag, type
+FROM fix_fields()
+WHERE name = 'OrderQty'
+LIMIT 1;
+----
+38	QTY
